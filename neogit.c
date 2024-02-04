@@ -725,7 +725,7 @@ int modifyfile(char file[],int mode){
             }
         }
     }
-    char * makecommits_hash(){
+    void makecommits_hash(char file_hash[]){
         FILE * commits_hashs = fopen("/home/.neogit_app/commits_hashs.txt","r");
         char hash[60];
         fgets(hash , 60 , commits_hashs);
@@ -743,6 +743,7 @@ int modifyfile(char file[],int mode){
         strcat(command , hashcopy);
         system(command);
         chdir(hashcopy);
+        strcpy(file_hash,hashcopy);
     }
     int makefolders(char relativepath[] , char absolutepath[]){
         //get our present location:
@@ -791,7 +792,21 @@ int modifyfile(char file[],int mode){
         strcat(COMMAND," ");
         strcat(COMMAND,lastfolder);
         system(COMMAND);
-        //system("ls");
+    }
+    void commits_details(char hash[],int number_files,char author_name[],char message[]){
+        //hash
+        //date
+        //number of files
+        //author name
+        //message
+        FILE * details = fopen("commits_details.txt","w");
+        fprintf(details,"%s\n",hash);
+        time_t present = time(NULL);
+        fprintf(details,"%s\n%d\n%s\n%s\n",ctime(&present),number_files,author_name,message);
+        fclose(details);
+        printf(" ID : %s\n",hash);
+        printf("DATE : %s\n",ctime(&present));
+        printf("MESSAGE : %s\n",message);
     }
 int main(int argc , char * argv[]){
     // we pure all txt files that we need for our programm in .neogit_app folder in /home and we made that before;
@@ -965,7 +980,7 @@ int main(int argc , char * argv[]){
         strcpy(allfiles,neogit_project_location);
         strcat(allfiles,"/.neogit/commits/timeline.txt");
         status(allfiles);
-    }else if(strcmp(argv[1],"commit")==0){
+    }else if((strcmp(argv[1],"commit")==0)&&(strcmp(argv[2],"-m")==0)){
         if(testproject()==0){
             printf("you didn't initialized neogit in your project\n");
             return 0;
@@ -985,6 +1000,7 @@ int main(int argc , char * argv[]){
             }
         }
         // now we passed message validity;
+        int number_files_commited=0;
         char presentloc[90];
         system("pwd > prloc.txt");
         FILE * file = fopen("prloc.txt","r");
@@ -1007,6 +1023,7 @@ int main(int argc , char * argv[]){
             int len = strlen(search);
             search[len-1]='\0';
             if(checkdirectory(search)==0){
+                number_files_commited++;
                 strcpy(files_abs_path[counter],search);
                 strcpy(search,search+length);
                 strcpy(pathes[counter],search);
@@ -1018,14 +1035,101 @@ int main(int argc , char * argv[]){
             printf("there isn't any file in stagine area!\n");
             return 0;
         }
-        chdir(".neogit/commits");
-        makecommits_hash();
+        char message[90];
+        strcpy(message,argv[3]);
+        chdir(".neogit");
+        char author_name[50];
+        FILE * name = fopen("account_name.txt","r");
+        fgets(author_name,50,name);
+        fclose(name);
+        int name_length = strlen(author_name);
+        author_name[name_length-1]='\0';
+        //
+        chdir("commits");
+        char fullpath[80];
+        system("pwd > fullpath.txt");
+        FILE * PWD = fopen("fullpath.txt","r");
+        fgets(fullpath,80,PWD);
+        fclose(PWD);
+        int len_path = strlen(fullpath);
+        fullpath[len_path-1]='/';
+        system("rm fullpath.txt");
+        // it is going to changed:
+        strcat(fullpath,"/master");
+        if(checkdirectory(fullpath)==-1){
+            system("mkdir master");
+        }
+        chdir("master");
+        char hash[80];
+        makecommits_hash(hash);
+        //now we are inside our commit with hash name;
         for(int i=0 ;i<counter;i++){
             makefolders(pathes[i],files_abs_path[i]);
         }
-        return 0;
+        commits_details(hash,number_files_commited,author_name,message);
+    }else if(strcmp(argv[1],"set")==0){
+        if(argv[4]!=NULL){
+            printf("you didn't enter shortcut\n");
+            return 0;
+        }
+        char message[100];
+        strcpy(message,argv[3]);
+        char shortcut[70];
+        strcpy(shortcut,argv[4]);
+        FILE * sortcuts_file = fopen("/home/.neogit_app/shortcuts_file.txt","a");
+        fprintf(sortcuts_file,"%s\n",shortcut);
+        fprintf(shortcuts_file,"%s\n",message);
+        fclose(shortcuts_file);
+    }else if(strcmp(argv[1],"replace")==0){
+        char shortcut[90];
+        strcpy(shortcut,argv[4]);
+        strcat(shortcut,"\n");
+        FILE * shortcuts_file = fopen("/home/.neogit_app/shortcuts_file.txt","r");
+        FILE * shortcuts_temp = fopen("/home/.neogit_app/shortcuts_temp.txt","w");
+        char search[90];
+        while(fgets(search,90,shortcuts_file)){
+            fprintf(shortcuts_temp,"%s",search);
+            if(strcmp(search,shortcut)==0){
+                fgets(search,90,shortcuts_file);
+                fprintf(shortcuts_temp,"%s\n",argv[3]);
+            }
+        }
+        fclose(shortcuts_file);
+        fclose(shortcuts_temp);
+        char command1[50];
+        strcpy(command1,"rm /home/.neogit_app/shortcuts_file.txt");
+        system(command1);
+        char command2[120];
+        strcpy(command2,"mv /home/.neogit_app/shortcuts_temp.txt /home/.neogit_app/shortcuts_file.txt");
+        system(command2);
+    }else if((strcmp(argv[1],"commit")==0)&&(strcmp(argv[2],"-s")==0)){
+        
 
 
+
+        
+    }else if(strcmp(argv[1],"remove")==0){
+        char shortcut[90];
+        strcpy(shortcut,argv[3]);
+        strcat(shortcut,"\n");
+        FILE * shortcuts_file = fopen("/home/.neogit_app/shortcuts_file.txt","r");
+        FILE * shortcuts_temp = fopen("/home/.neogit_app/shortcuts_temp.txt","w");
+        char search[90];
+        while(fgets(search,90,shortcuts_file)){
+            if(strcmp(search,shortcut)==0){
+                fgets(search,90,shortcuts_file);
+                continue;
+            }
+            fprintf(shortcuts_temp,"%s",search);
+        }
+        fclose(shortcuts_file);
+        fclose(shortcuts_temp);
+        char command1[50];
+        strcpy(command1,"rm /home/.neogit_app/shortcuts_file.txt");
+        system(command1);
+        char command2[120];
+        strcpy(command2,"mv /home/.neogit_app/shortcuts_temp.txt /home/.neogit_app/shortcuts_file.txt");
+        system(command2);
     }
 
 
