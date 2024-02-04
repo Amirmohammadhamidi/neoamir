@@ -816,6 +816,7 @@ int modifyfile(char file[],int mode){
         strcat(allcommits_locations,"/.neogit/commits/allcommits.txt");
         FILE * allcommits = fopen(allcommits_locations,"a");
         fprintf(allcommits,"%s",present_path);
+
         fclose(allcommits);
         //hash
         //date
@@ -1469,9 +1470,66 @@ int main(int argc , char * argv[]){
             printf("%s",search);
         }
     }else if((strcmp(argv[1],"branch")==0)&&(argc==3)){
+        char branchcopy[90];
+        strcpy(branchcopy,argv[2]);
+        strcat(branchcopy,"\n");
         testproject();
+        chdir(".neogit/commits");
+        FILE * allbranches = fopen("allbranches.txt","r");
+        char search[90];
+        int flag=0;
+        while(fgets(search,90,allbranches)){
+            if(strcmp(search,branchcopy)==0){
+                printf("this branch already exist!\n");
+                flag++;
+                break;
+            }
+        }
+        fclose(allbranches);
+        if(flag>0) 
+        return 0;
+        int commit_flag=0;
+        FILE * lastcommit= fopen("allcommits.txt","r");
+        char searchcopy[90];
+        while(fgets(search,90,lastcommit)){
+            strcpy(searchcopy,search);
+            commit_flag++;
+        }
+        if(commit_flag==0){
+            printf("there isn't any commit yet!\n");
+            return 0;
+        }
+        char makefolder_command[90];
+        strcpy(makefolder_command,"mkdir ");
+        strcat(makefolder_command,argv[2]);
+        system(makefolder_command);
+        //now we made our new branch;
+        //first part is to handle allbranches.txt:
+        FILE * new_allbranches = fopen("allbranches.txt","a");
+        fprintf(new_allbranches,"%s",branchcopy);
+        fclose(new_allbranches);
+        // //secon part is to update HEAD:
 
+        // FILE * HEAD = fopen("HEAD.txt","w");
+        // fprintf(HEAD,"%s",branchcopy);
+        // fclose(HEAD);
 
+        //it will not change HEAD;
+        //third part is to make firstcommit in this new branch by last commit: HOW?
+        //all pahtes of commits are saved in allcommits.txt:
+        char new_branch_absolutepath[90];
+        strcpy(new_branch_absolutepath,neogit_project_location);
+        strcat(new_branch_absolutepath,"/.neogit/commits/");
+        strcat(new_branch_absolutepath,argv[2]);
+        int len = strlen(searchcopy);
+        searchcopy[len-1]='\0';
+        char cp_command[150];
+        strcpy(cp_command,"cp -r ");
+        strcat(cp_command,searchcopy);
+        strcat(cp_command," ");
+        strcat(cp_command,new_branch_absolutepath);
+        system(cp_command);
+        //details will not change even ID(hash);
     }
 
 
