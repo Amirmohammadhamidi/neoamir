@@ -4,6 +4,7 @@
 #include<sys/stat.h>
 #include<unistd.h>
 #include<dirent.h>
+#include<time.h>
 char neogit_project_location[60];
 int find_file(char file_name[]){
     char filecopy[50];
@@ -133,11 +134,12 @@ void assign_global(char * type , char * name){
     fclose(file);
 }
 void add_file(char file[]){
-    if(find_file(file)){
+            //check if it has been changed from its last commit or not:
+
             //we copy our file which it can be folder or any other file;
             //now we made our command:
             char command[100];
-            strcpy(command,"cp -ur ");
+            strcpy(command,"cp ");
             char neogit_loc[60];
             strcpy(neogit_loc , neogit_project_location);
             int len = strlen(neogit_loc); 
@@ -147,11 +149,134 @@ void add_file(char file[]){
             strcat(command,neogit_loc);
             strcat(command ,"/.neogit/staged_files");
             system(command);
-
-        }else{
-            printf("there isn't any file with the name of %s\n", file);
-        }
 }
+int subdirectories(int depth , int counter){
+    system("touch subdirectories.txt");
+    system("ls -d */ > subdirectories.txt");
+    
+
+}
+int difchecker(FILE * past , FILE * present){
+    //if they are same it shows 1 unless it shows 0;
+    char past_lines[100];
+    char present_lines[100];
+    int flag=0;
+    while(fgets(past_lines,100,past)){
+        flag++;
+        fgets(present_lines,100,present);
+        if(strcmp(past_lines,present_lines)!=0){
+            return 0;
+            break;
+        }
+    }
+    if(flag==0){
+        if(fgets(present_lines,100,present)){
+            return 0;
+        }
+    }
+    return 1;
+}
+int checkdirectory(char * path){
+    struct stat filestat ;
+    if(stat(path,&filestat)==0){
+        if(S_ISDIR(filestat.st_mode)){
+            return 1;
+        }
+        return 0;
+    }
+}
+int modifyfile(char file[]){
+        char * path = (char *)malloc(70*sizeof(char));
+        char location[60];
+        system("touch path.txt");
+        system("pwd > path.txt");
+        FILE * pathfile = fopen("path.txt","r");
+        fgets(path,70,pathfile);
+        fclose(pathfile);
+        system("rm path.txt");
+        int len = strlen(path);
+        path[len-1]='/';
+        strcpy(location,path);
+        strcat(path,file);
+        //now we have our path;
+        int length = strlen(path);
+        path[length-1]='\0';
+        struct stat filestat ;
+        if(stat(path , &filestat)==0){
+            time_t present = filestat.st_mtime;
+            char timelineloc[70];
+            char temp[100];
+            strcpy(timelineloc,neogit_project_location);
+            strcat(timelineloc,"/.neogit/commits/timeline.txt");
+            strcpy(temp, neogit_project_location);
+            strcat(temp,"/.neogit/commits/temp.txt");
+            FILE * timeline = fopen(timelineloc,"r");
+            FILE * tempfile = fopen(temp,"w");
+            char search[70];
+            int flag=0;
+            while(fgets(search,70,timeline)){
+            fprintf(tempfile,"%s",search);
+            if(strcmp(search,file)==0){
+            fgets(search,70,timeline);
+            fprintf(tempfile,"%s",ctime(&present));
+            flag++;
+                }
+            }
+         if(flag==0){
+            fprintf(tempfile,"%s",file);
+            fprintf(tempfile,"%s",ctime(&present));
+            }
+            fclose(timeline);
+            fclose(tempfile);
+            chdir(neogit_project_location);
+            chdir(".neogit/commits");
+            system("rm timeline.txt");
+            system("mv temp.txt timeline.txt");
+            chdir(location);
+        }else{
+            perror("Error");
+        }
+    }
+    void modify(){
+        int count=0;
+        system("touch file.txt");
+        system("ls -a > file.txt");
+        FILE * files = fopen("file.txt","r");
+        char search[50];
+        char filenames[50][50];
+        while(fgets(search,50,files)){
+            if(strcmp(search,"file.txt\n")!=0){
+            strcpy(filenames[count],search);
+            count++;
+            }
+        }
+        fclose(files);
+        system("rm file.txt");
+        for(int i=0;i<count;i++){
+            int len = strlen(filenames[i]);
+            filenames[i][len-1]='\0';
+            char path[90];
+            system("touch path.txt");
+            system("pwd > path.txt");
+            FILE * pathfile = fopen("path.txt","r");
+            fgets(path,90,pathfile);
+            int length = strlen(path);
+            path[length-1]='/';
+            strcat(path,filenames[i]);
+            fclose(pathfile);
+            system("rm path.txt");
+            //path is compoletely true;
+            int type = checkdirectory(path);
+            if((((type==1)&&(strcmp(filenames[i],".neogit")!=0))&&(strcmp(filenames[i],".")!=0))&&(strcmp(filenames[i],"..")!=0)){
+                chdir(path);
+                modify();
+                chdir("..");
+            }else if (((strcmp(filenames[i],".neogit")!=0))&&(type==0)){
+                strcat(filenames[i],"\n");
+                modifyfile(filenames[i]);
+            }
+        }
+    }
 int main(int argc , char * argv[]){
     // we pure all txt files that we need for our programm in .neogit_app folder in /home and we made that before;
     //now we have this 2D strig which have all commands:
@@ -212,7 +337,11 @@ int main(int argc , char * argv[]){
             strcpy(command ,"mkdir ");
             strcat(command , hashcopy);
             system(command);
-            chdir("..");
+            //now i make timeline of files.txt which it always change by every modification in files whitch they benn commited;
+            system("touch timeline.txt");
+            chdir("../..");
+            modify();
+            chdir(".neogit");
             //now we are back in .neogit folder;
             //copy all project to our primary directories;
             //and also we make 2 account.txt for save our email and username
@@ -272,7 +401,16 @@ int main(int argc , char * argv[]){
         if(strcmp(argv[2],"-f")==0){
             for(int i=3 ; i< argc ;i++){
             //argv[i] don't have any \n at end of them
-            add_file(argv[i]);
+                    char path[70];
+                if(find_file(argv[i])){
+                    system("touch path.txt");
+                    system("pwd > path.txt");
+                    FILE * pathfile = fopen("path.txt","r");
+                    fgets(path,70,pathfile);
+                    fclose(pathfile);
+                    system("rm path.txt");
+                    add_file(argv[i]);
+                }
             }
         }else if(strcmp(argv[2],"-n")==0){
             
