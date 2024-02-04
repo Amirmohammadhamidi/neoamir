@@ -8,7 +8,7 @@
 char neogit_project_location[60];
 char lastfolder[90];
 char time_path[90];
-int check_exist(char searchfile[],char orgfile[]){
+    int check_exist(char searchfile[],char orgfile[]){
     char search[80];
     strcpy(search,searchfile);
     strcat(search,"\n");
@@ -23,8 +23,8 @@ int check_exist(char searchfile[],char orgfile[]){
     }
     fclose(file);
     return flag;
-}
-int find_file(char file_name[]){
+    }
+    int find_file(char file_name[]){
     char filecopy[50];
     strcpy(filecopy,file_name);
     strcat(filecopy,"\n");
@@ -42,9 +42,9 @@ int find_file(char file_name[]){
     fclose(file);
     system("rm details.txt");
     return test;
-}
+    }
 // it has our present project .neogit folder location;
-int check_neogit(){
+    int check_neogit(){
     int test=0;
     system("touch details.txt");
     system("ls -a > details.txt");
@@ -74,8 +74,8 @@ int check_neogit(){
     fclose(file);
     system("rm details.txt");
     return 1;
-}
-int check_root(){
+    }   
+    int check_root(){
     system("touch details.txt");
     system("pwd > details.txt");
     FILE * file = fopen("details.txt","r");
@@ -90,8 +90,8 @@ int check_root(){
         system("rm details.txt");
         return 1;
     }
-}
-int testproject(){
+    }
+    int testproject(){
     int test=0;
     int flag=0;
     while(1){
@@ -107,8 +107,8 @@ int testproject(){
         chdir("..");
     }
     return flag;
-}
-int assign_local(char * type , char * name){
+    }
+    int assign_local(char * type , char * name){
     if(testproject()==0){
         printf("you didn't make any new project\n");
         return 0;
@@ -127,21 +127,21 @@ int assign_local(char * type , char * name){
         fclose(file);
     }   
     return 1;
-}
-void assign_global(char * type , char * name){
+    }
+    void assign_global(char * type , char * name){
         char search[70];
-    if(strcmp(type,"user.name")==0){
-        FILE * global_username = fopen("/home/.neogit_app/global_names.txt","w");
-        fprintf(global_username , "%s", name);
-        fclose(global_username);
-    }else if(strcmp(type,"user.email")==0){
-        FILE * global_useremail=fopen("/home/.neogit_app/global_emails.txt","w");
-        fprintf(global_useremail , "%s", name);
-        fclose(global_useremail);
-    } 
-}
+        if(strcmp(type,"user.name")==0){
+            FILE * global_username = fopen("/home/.neogit_app/global_names.txt","w");
+            fprintf(global_username , "%s", name);
+            fclose(global_username);
+        }else if(strcmp(type,"user.email")==0){
+            FILE * global_useremail=fopen("/home/.neogit_app/global_emails.txt","w");
+            fprintf(global_useremail , "%s", name);
+            fclose(global_useremail);
+        } 
+    }
 //it is ok!
-int checkdirectory(char * path){
+    int checkdirectory(char * path){
     struct stat filestat ;
     if(stat(path,&filestat)==0){
         if(S_ISDIR(filestat.st_mode)){
@@ -150,32 +150,72 @@ int checkdirectory(char * path){
         return 0;
     }
     return -1;
-}
-//it is ok!
-int checktracked_files(char file[]){
-    char location[90];
-    strcpy(location,neogit_project_location);
-    strcat(location,"/.neogit/staged_files/trackted_files.txt");
-    FILE * trackted_files = fopen(location,"r");
-    char search[80];
-    int flag=0;
-    while(fgets(search,80,trackted_files)){
-        if(strcmp(file,search)==0){
-            flag++;
-            break;
-        }
     }
-    fclose(trackted_files);
-    return flag;
-}
-void writetrcktedfiles(char file[]){
+//it is ok!
+    int checktracked_files(char file[]){
+        char location[90];
+        strcpy(location,neogit_project_location);
+        strcat(location,"/.neogit/staged_files/trackted_files.txt");
+        FILE * trackted_files = fopen(location,"r");
+        char search[80];
+        int flag=0;
+        while(fgets(search,80,trackted_files)){
+            if(strcmp(file,search)==0){
+                flag++;
+                break;
+            }
+        }
+        fclose(trackted_files);
+        return flag;
+    }
+    void writetrcktedfiles(char file[]){
     char location[90];
     strcpy(location,neogit_project_location);
     strcat(location,"/.neogit/staged_files/trackted_files.txt");
     FILE *trackted_files = fopen(location,"a");
     fprintf(trackted_files,"%s",file);
     fclose(trackted_files);
-}
+    }
+    int deleted_added_files(){
+        if(checkdirectory("/home/.neogit/deleted_files.txt")==-1)  return 0;
+        FILE * deleted_files = fopen("/home/.neogit_app/deleted_files.txt","r");
+        char search[90];
+        char files_path[90];
+        char command[100];
+        int length = strlen(neogit_project_location);
+        while(fgets(search,90,deleted_files)){
+            int len = strlen(search);
+            search[len-1]='\0';
+            strcpy(files_path,search);
+            strcpy(files_path,files_path+length+1);
+            strcpy(command,"rm ");
+            strcat(command,files_path);
+            system(command);
+        }
+        system("rm /home/.neogit_app/deleted_files.txt");
+    }   
+    int check_deleted_files(char path[]){
+        char trackted_files[90];
+        strcpy(trackted_files,neogit_project_location);
+        strcat(trackted_files,"/.neogit/staged_files/trackted_files.txt");
+        FILE * trackt = fopen(trackted_files,"r");
+        char search[100];
+        char pathcopy[100];
+        strcpy(pathcopy,path);
+        strcat(pathcopy,"\n");
+        int flag=0;
+        while(fgets(search,100,trackt)){
+            if(strcmp(search,pathcopy)==0){
+                flag++;
+            }
+        }
+        fclose(trackt);
+        if(flag==0)   return flag;
+        FILE * deleted_files = fopen("/home/.neogit_app/deleted_files.txt","a");
+        fprintf(deleted_files,"%s",pathcopy);
+        fclose(deleted_files);
+        return flag;
+    }
     int modifyfile(char file[],int mode){
     //file is path of our file;
         char path[80];
@@ -200,27 +240,18 @@ void writetrcktedfiles(char file[]){
             char temp[80];
             strcpy(timelineloc,neogit_project_location);
             strcat(timelineloc,"/.neogit/commits/timeline.txt");
-            strcpy(temp, neogit_project_location);
-            strcat(temp,"/.neogit/commits/temp.txt");
             FILE * timeline = fopen(timelineloc,"r");
-            FILE * tempfile = fopen(temp,"w");
             char search[70];
             int flag=0;
             while(fgets(search,70,timeline)){
-                fprintf(tempfile,"%s",search);
                 if(strcmp(search,path)==0){
                     fgets(search,70,timeline);
                     if(strcmp(search,ctime(&present))!=0){
                         flag++;
                     }
-                    fprintf(tempfile,"%s",search);
                     flag++;
                 }
             }
-            if(flag==0){
-                    fprintf(tempfile,"%s",path);
-                    fprintf(tempfile,"%s",ctime(&present));
-                }
             if(((flag==0||flag==2)||(checktracked_files(path)==0))||(mode==1)){
                 if(checktracked_files(path)==0){
                     writetrcktedfiles(path);
@@ -241,11 +272,6 @@ void writetrcktedfiles(char file[]){
                 fclose(staged_files);
             }
             fclose(timeline);
-            fclose(tempfile);
-            chdir(neogit_project_location);
-            chdir(".neogit/commits");
-            system("rm timeline.txt");
-            system("mv temp.txt timeline.txt");
             chdir(location);
             return 1;
         }else{
@@ -343,7 +369,10 @@ void writetrcktedfiles(char file[]){
                 modifyfile(filepath,add_mode);
             }
         }else{
-            printf("there isn't any file or directory with this name");
+            //check trackted files:
+            if(check_deleted_files(path)==0){
+                printf("there isn't any file or directory with this name");
+            }
             return 0;
         }
             return 1;
@@ -571,7 +600,7 @@ void writetrcktedfiles(char file[]){
         char search[80];
         char aloc[80];
         strcpy(aloc,neogit_project_location);
-        strcat(aloc,"/.neogit/commits/timeline.txt");
+        strcat(aloc,"/.neogit/commits/");
         FILE * timeline = fopen(aloc,"r");
         while(fgets(search,80,timeline)){
             if(strcmp(search,path)==0){
@@ -889,8 +918,7 @@ void writetrcktedfiles(char file[]){
         printf("DATE : %s",ctime(&present));
         printf("MESSAGE : %s\n",message);
     }
-    int checktime(char commit_time[],char date[],char second[]){
-        
+    int checktime(char commit_time[],char date[],char second[]){    
     }
     void renew_timeline(){
         //when we call this function we are in commit folder where it has timeline.txt:
@@ -927,7 +955,7 @@ void writetrcktedfiles(char file[]){
             char s[90];
             int flag=0;
             while(fgets(s,90,listed_files)){
-                if((strcmp(s,".\n")==0)||(strcmp(s,"..\n")==0))  continue;
+                if(((strcmp(s,".\n")==0)||(strcmp(s,"..\n")==0))||(strcmp(s,"list_files.txt\n")==0))  continue;
                 flag++;
                 break;
             }
@@ -935,7 +963,7 @@ void writetrcktedfiles(char file[]){
             system("rm list_files.txt");
             chdir("..");
             //now comeback to main work:
-            if(flag>0) return 0;
+            if(flag==0) return 0;
             strcpy(list,list+len+1);
             strcpy(result,result_folder_path);
             strcat(result,"/");
@@ -958,6 +986,7 @@ void writetrcktedfiles(char file[]){
             strcat(command,result);
             system(command);
         }
+        return 0;
     }
     void copy_untracktedfiles(char result_folder_name[],char result_folder_path[]){
         system("pwd > present_location.txt");
@@ -1007,6 +1036,7 @@ void writetrcktedfiles(char file[]){
         while(fgets(search,90,trackted_files)){
             int len = strlen(search);
             search[len-1]='\0';
+            if(checkdirectory(search)==-1)  continue;
             strcpy(remove_command,"rm ");
             strcat(remove_command,search);
             system(remove_command);
@@ -1028,7 +1058,6 @@ int main(int argc , char * argv[]){
     //first step is to build neogit init command
     if(strcmp(argv[1],"init")==0){
             //we save all locations of our projects in locations.txt in /home:
-        FILE * location = fopen("/home/.neogit_app/locations.txt","a");
         //check that if there is .neogit folder in our present directory or above not?
         system("touch project_location.txt");
         system("pwd > project_location.txt");
@@ -1051,10 +1080,28 @@ int main(int argc , char * argv[]){
             chdir("..");
         }
         if(test==2){
+            //make this project folder:
+            // if(checkdirectory("/home/.neogit_app/locations.txt")!=-1){
+            //     chdir("/home/.neogit_app");
+            //     FILE * neogit_app_locations = fopen("locations.txt","r");
+            //     char search[100];
+            //     int number_projects=0;
+            //     while(fgets(search,100,neogit_app_locations)){
+            //         number_projects++;
+            //     }
+            //     fclose(neogit_app_locations);
+            //     char number[20];
+            //     sprintf(number,"%d",number_projects);
+            //     char mkdir_command[20];
+            //     strcpy(mkdir_command,"mkdir ");
+            //     strcat(mkdir_command,number);
+            //     system(mkdir_command);
+            // }
+            FILE * location = fopen("locations.txt","a");
             int len=strlen(first_location);
-            first_location[len-1]='\n';
-            fprintf(location,"%s",first_location);
             first_location[len-1]='\0';
+            fprintf(location,"%s\n",first_location);
+            fclose(location);
             chdir(first_location);
             strcpy(neogit_project_location,first_location);
             system("mkdir .neogit");
@@ -1099,7 +1146,6 @@ int main(int argc , char * argv[]){
             fprintf(account,"%s",EMAIL);
             fclose(account2);
         }
-        fclose(location);
     }
     //user.name and user.email
     else if(strcmp(argv[1],"config")==0){
@@ -1253,8 +1299,17 @@ int main(int argc , char * argv[]){
         system("rm files.txt");
         chdir(neogit_project_location);
         if(flag==0){
-            printf("there isn't any file in stagine area!\n");
-            return 0;
+            FILE * del_files = fopen("/home/.neogit_app/deleted_files.txt","r");
+            char test[90];
+            int flag2=0;
+            if(fgets(test,90,del_files)){
+                flag2++;
+            }
+            fclose(del_files);
+            if(flag2==0){
+                printf("there isn't any file in stagine area!\n");
+                return 0;
+            }   
         }
         char message[90];
         strcpy(message,argv[3]);
@@ -1280,7 +1335,6 @@ int main(int argc , char * argv[]){
         FILE * present_branch = fopen("HEAD.txt","r");
         char HEAD_branch[90];
         if(fgets(HEAD_branch,90,present_branch)){
-
         } else {
             system("mkdir master");
             FILE * branch_file = fopen("HEAD.txt","w");
@@ -1305,6 +1359,7 @@ int main(int argc , char * argv[]){
             makefolders(pathes[i],files_abs_path[i],hash);
         }
         commits_details(HEAD_branch,hash,number_files_commited,author_name,message);
+        deleted_added_files();
         //remove all staged_files:
         chdir("../..");
         //renew timeline.txt
@@ -1313,6 +1368,7 @@ int main(int argc , char * argv[]){
         chdir("..");
         system("mkdir tempstagingarea");
         system("cp staged_files/trackted_files.txt tempstagingarea");
+        //we should copy this version of staged_files to .neogit_app folder to its 
         system("rm -r staged_files");
         system("mv tempstagingarea staged_files");
         chdir("staged_files");
@@ -1701,12 +1757,6 @@ int main(int argc , char * argv[]){
         FILE * new_allbranches = fopen("allbranches.txt","a");
         fprintf(new_allbranches,"%s",branchcopy);
         fclose(new_allbranches);
-        // //secon part is to update HEAD:
-
-        // FILE * HEAD = fopen("HEAD.txt","w");
-        // fprintf(HEAD,"%s",branchcopy);
-        // fclose(HEAD);
-
         //it will not change HEAD;
         //third part is to make firstcommit in this new branch by last commit: HOW?
         //all pahtes of commits are saved in allcommits.txt:
@@ -1778,6 +1828,10 @@ int main(int argc , char * argv[]){
         strcpy(branch_commit_location,neogit_project_location);
         strcat(branch_commit_location,"/.neogit/commits/");
         strcat(branch_commit_location,argv[3]);
+        if(checkdirectory(branch_commit_location)==-1){
+            printf("there isn't branch with this name\n");
+            return 0;
+        }
         chdir(branch_commit_location);
         system("ls > commit_checkout.txt");
         FILE * files = fopen("commit_checkout.txt","r");
@@ -1810,7 +1864,7 @@ int main(int argc , char * argv[]){
         strcat(command2,search_commits_copy);
         system(command2);
         chdir(neogit_project_location);
-        char result_folder_loc[90];
+        char result_folder_loc[200];
         strcpy(result_folder_loc,in_loc);
         strcat(result_folder_loc,"/");
         strcat(result_folder_loc,search_commits_copy);
@@ -1832,6 +1886,11 @@ int main(int argc , char * argv[]){
         strcat(command3,neogit_project_location);
         system(command3);
         chdir(neogit_project_location);
+        //we should change HEAD :
+        FILE * HEAD_file  = fopen(".neogit/commits/HEAD.txt","w");
+        fprintf(HEAD_file,"%s\n",argv[3]);
+        fclose(HEAD_file);
+        //now it has changed!
         system("rm commits_details.txt");
         return 0;
     }else if((strcmp(argv[1],"checkout")==0)&&(strcmp(argv[2],"-c")==0)){
@@ -1867,7 +1926,6 @@ int main(int argc , char * argv[]){
         char HEAD[90];
         fgets(HEAD,90,HEADfile);
         fclose(HEADfile);
-        system("rm HEAD.txt");
         int length = strlen(HEAD);
         HEAD[length-1]='\0';
         chdir(HEAD);
@@ -1966,7 +2024,11 @@ int main(int argc , char * argv[]){
         system(result);
         return 0;
     }else if((strcmp(argv[1],"revert")==0)&&(strcmp(argv[2],"[e]")==0)){
-        
+    }else if(strcmp(argv[1],"tag")&&(argc>=6)){
+        testproject();
+        chdir(".neogit/commits");
+        // we create tag.txt which has all tags with commits ID in it:
+        FILE * tag_file = fopen("tags.txt","w");
     }
 
 
