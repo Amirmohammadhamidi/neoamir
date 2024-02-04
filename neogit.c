@@ -223,27 +223,22 @@ int modifyfile(char file[]){
                     flag++;
                 }
             }
+            if(flag==0){
+                    fprintf(tempfile,"%s",path);
+                    fprintf(tempfile,"%s",ctime(&present));
+                }
             if(flag==0||flag==2){
-                fprintf(tempfile,"%s",path);
-                fprintf(tempfile,"%s",ctime(&present));
                 int length = strlen(path);
-                        path[length-1]='\0';
-                        char COMMAND[80];
-                        char location[80];
-                        strcpy(COMMAND,"cp ");
-                        strcat(COMMAND,path);
-                        strcat(COMMAND," ");
-                        strcat(COMMAND,neogit_project_location);
-                        strcat(COMMAND,"/.neogit/staged_files");
-                        system(COMMAND);
-                        strcpy(location,neogit_project_location);
-                        strcat(location,"/.neogit/staged_files/staged_files.txt");
-                        FILE * staged_files = fopen(location,"a");
-                        strcat(path,"\n");
-                        fprintf(staged_files,"%s",path);
-                        fprintf(staged_files,"%s",ctime(&present));
-                        fclose(staged_files);
-
+                path[length-1]='\0';
+                char COMMAND[80];
+                char location[80];
+                strcpy(location,neogit_project_location);
+                strcat(location,"/.neogit/staged_files/staged_files.txt");
+                FILE * staged_files = fopen(location,"a");
+                strcat(path,"\n");
+                fprintf(staged_files,"%s",path);
+                fprintf(staged_files,"%s",ctime(&present));
+                fclose(staged_files);
             }
             fclose(timeline);
             fclose(tempfile);
@@ -475,45 +470,212 @@ int modifyfile(char file[]){
             system(srename);
         }
     }
-    void rest(char apath[]){
+    void reset(char apath[]){
             //now we get our fullpath of file;
-            if(checkdirectory(apath)==1){
-                delstage(apath,1);
-                chdir(apath);
-                int count=0;
-                system("touch file.txt");
-                system("ls -a > file.txt");
-                FILE * files = fopen("file.txt","r");
-                char search[80];
-                char filenames[80][80];
-                while(fgets(search,80,files)){
-                    if(strcmp(search,"file.txt\n")!=0){
+        if(checkdirectory(apath)==1){
+            delstage(apath,1);
+            chdir(apath);
+            int count=0;
+            system("touch file.txt");
+            system("ls -a > file.txt");
+            FILE * files = fopen("file.txt","r");
+            char search[80];
+            char filenames[80][80];
+            while(fgets(search,80,files)){
+                if(strcmp(search,"file.txt\n")!=0){
                     strcpy(filenames[count],search);
                     count++;
                     }
                 }
-                fclose(files);
-                system("rm file.txt");
-                for(int i=0 ; i<count ; i++){
-                    int len = strlen(filenames[i]);
-                    filenames[i][len-1]='\0';
-                    char path[90];
-                    system("touch path.txt");
-                    system("pwd > path.txt");
-                    FILE * pathfile = fopen("path.txt","r");
-                    fgets(path,90,pathfile);
-                    fclose(pathfile);
-                    system("rm path.txt");
-                    int length = strlen(path);
-                    path[length-1]='/';
-                    strcat(path,filenames[i]);
-                    rest(path);
-                }
-            }else if(checkdirectory(apath)==0){
-                delstage(apath,0);
-            }else{
-                printf("there isn't any file or directory with this name");
+            fclose(files);
+            system("rm file.txt");
+            for(int i=0 ; i<count ; i++){
+                int len = strlen(filenames[i]);
+                filenames[i][len-1]='\0';
+                char path[90];
+                system("touch path.txt");
+                system("pwd > path.txt");
+                FILE * pathfile = fopen("path.txt","r");
+                fgets(path,90,pathfile);
+                fclose(pathfile);
+                system("rm path.txt");
+                int length = strlen(path);
+                path[length-1]='/';
+                strcat(path,filenames[i]);
+                reset(path);
             }
+        }else if(checkdirectory(apath)==0){
+            delstage(apath,0);
+        }else{
+            printf("there isn't any file or directory with this name");
+        }
+    }
+    int check_stagedfiles(char path[]){
+        strcat(path,"\n");
+        char slocation[90];
+        strcpy(slocation,neogit_project_location);
+        strcat(slocation,"/.neogit/staged_files/staged_files.txt");
+        if(checkdirectory(slocation)==-1){
+            return -1;
+        }
+        FILE * staged_files = fopen(slocation,"r");
+        char search[80];
+        int flag=0;
+        while(fgets(search,80,staged_files)){
+            if(strcmp(search,path)==0){
+                return 1;
+            }
+            flag++;
+        }
+        fclose(staged_files);
+        if(flag==0){
+            return 0;
+        }
+    }
+    void search_timeline(char path[]){
+        int flag=0;
+        strcat(path,"\n");
+        char search[80];
+        char aloc[80];
+        strcpy(aloc,neogit_project_location);
+        strcat(aloc,"/.neogit/commits/timeline.txt");
+        FILE * timeline = fopen(aloc,"r");
+        while(fgets(search,80,timeline)){
+            if(strcmp(search,path)==0){
+                flag++;
+            }
+        }
+        if(flag==0){
+            int len = strlen(path);
+            path[len-1]='\0';
+            printf("%s : ",path);
+            printf("-A\n");
+        }
+    }
+    void check_A(){
+        int count=0;
+        system("touch file.txt");
+        system("ls -a > file.txt");
+        FILE * files = fopen("file.txt","r");
+        char search[50];
+        char filenames[50][50];
+        while(fgets(search,50,files)){
+            if(strcmp(search,"file.txt\n")!=0){
+            strcpy(filenames[count],search);
+            count++;
+            }
+        }
+        fclose(files);
+        system("rm file.txt");
+        for(int i=0;i<count;i++){
+            int len = strlen(filenames[i]);
+            filenames[i][len-1]='\0';
+            char path[90];
+            system("touch path.txt");
+            system("pwd > path.txt");
+            FILE * pathfile = fopen("path.txt","r");
+            fgets(path,90,pathfile);
+            int length = strlen(path);
+            path[length-1]='/';
+            strcat(path,filenames[i]);
+            fclose(pathfile);
+            system("rm path.txt");
+            //path is compoletely true;
+            int type = checkdirectory(path);
+            if((((type==1)&&(strcmp(filenames[i],".neogit")!=0))&&(strcmp(filenames[i],".")!=0))&&(strcmp(filenames[i],"..")!=0)){
+                chdir(path);
+                check_A();
+                chdir("..");
+            }
+            else if (((strcmp(filenames[i],".neogit")!=0))&&(type==0)){
+                search_timeline(path);
+            }
+        }
+    }
+    void status(char alocation[]){
+        FILE * timeline = fopen(alocation,"r");
+        char search[80];
+        char pathcopy1[90];
+        char pathcopy2[90];
+        char path[90];
+        while(fgets(search,80,timeline)){
+            strcpy(path,search);
+            int length = strlen(path);
+            path[length-1]='\0';
+            printf("%s : ",path);
+            strcpy(pathcopy1,path);
+            strcpy(pathcopy2,path);
+            if(check_stagedfiles(pathcopy1)==1)
+            printf("+");
+            else if((check_stagedfiles(pathcopy2)==-1)||(check_stagedfiles(pathcopy2)==0))
+            printf("-");
+            if(checkdirectory(path)==-1){
+                fgets(search,80,timeline);
+                printf("D\n");
+            }else{
+                struct stat filestat;
+                if(stat(path,&filestat)==0){
+                    time_t present = filestat.st_mtime;
+                    fgets(search,80,timeline);
+                    if(strcmp(search,ctime(&present))!=0){
+                        printf("M\n");
+                    }else{
+                        printf("not modified\n");
+                    }
+                }
+            }
+        }
+        fclose(timeline);
+        check_A();
+    }
+    void writetimeline(){
+        int count=0;
+        system("touch file.txt");
+        system("ls -a > file.txt");
+        FILE * files = fopen("file.txt","r");
+        char search[50];
+        char filenames[50][50];
+        while(fgets(search,50,files)){
+            if(strcmp(search,"file.txt\n")!=0){
+            strcpy(filenames[count],search);
+            count++;
+            }
+        }
+        fclose(files);
+        system("rm file.txt");
+        for(int i=0;i<count;i++){
+            int len = strlen(filenames[i]);
+            filenames[i][len-1]='\0';
+            char path[90];
+            system("touch path.txt");
+            system("pwd > path.txt");
+            FILE * pathfile = fopen("path.txt","r");
+            fgets(path,90,pathfile);
+            int length = strlen(path);
+            path[length-1]='/';
+            strcat(path,filenames[i]);
+            fclose(pathfile);
+            system("rm path.txt");
+            //path is compoletely true;
+            int type = checkdirectory(path);
+            if((((type==1)&&(strcmp(filenames[i],".neogit")!=0))&&(strcmp(filenames[i],".")!=0))&&(strcmp(filenames[i],"..")!=0)){
+                chdir(path);
+                writetimeline();
+                chdir("..");
+            }else if (((strcmp(filenames[i],".neogit")!=0))&&(type==0)){
+                char firstlocation[80];
+                strcpy(firstlocation,neogit_project_location);
+                strcat(firstlocation,"/.neogit/commits/timeline.txt");
+                FILE * timeline = fopen(firstlocation,"a");
+                struct stat filestat;
+                if(stat(path,&filestat)==0){
+                    fprintf(timeline,"%s\n",path);
+                    time_t present = filestat.st_mtime;
+                    fprintf(timeline,"%s",ctime(&present));
+                }
+                fclose(timeline);
+            }
+        }
     }
 int main(int argc , char * argv[]){
     // we pure all txt files that we need for our programm in .neogit_app folder in /home and we made that before;
@@ -576,8 +738,8 @@ int main(int argc , char * argv[]){
             strcat(command , hashcopy);
             system(command);
             //now i make timeline of files.txt which it always change by every modification in files whitch they benn commited;
-            system("touch timeline.txt");
             chdir("../..");
+            writetimeline();
             chdir(".neogit");
             //now we are back in .neogit folder;
             //copy all project to our primary directories;
@@ -639,13 +801,13 @@ int main(int argc , char * argv[]){
         }else{
                 add_file(argv[2]);
         }
-    }else if(strcmp(argv[1],"rest")==0){
+    }else if(strcmp(argv[1],"reset")==0){
         if(testproject()==0){
             printf("you didn't initialized neogit in your project\n");
             return 0;
         }
         // argv[2] is path of our file:
-        // rest function will do this part:
+        // reset function will do this part:
         if(strcmp(argv[2],"-f")==0){
             for(int i = 3 ; i<argc ; i++ ){
                 char path[90];
@@ -658,7 +820,7 @@ int main(int argc , char * argv[]){
                 int length = strlen(path);
                 path[length-1]='/';
                 strcat(path,argv[i]);
-                rest(path);
+                reset(path);
             }
         }else{
             char path[90];
@@ -671,8 +833,16 @@ int main(int argc , char * argv[]){
             int length = strlen(path);
             path[length-1]='/';
             strcat(path,argv[2]);
-            rest(path);
+            reset(path);
         }
+    }else if(strcmp(argv[1],"status")==0){
+        testproject();
+        char allfiles[80];
+        strcpy(allfiles,neogit_project_location);
+        strcat(allfiles,"/.neogit/commits/timeline.txt");
+        status(allfiles);
+    }else if(strcmp(argv[1],"commit")==0){
+        
     }
 
 
