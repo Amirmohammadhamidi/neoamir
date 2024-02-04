@@ -918,7 +918,55 @@ char time_path[90];
         printf("DATE : %s",ctime(&present));
         printf("MESSAGE : %s\n",message);
     }
-    int checktime(char commit_time[],char date[],char second[]){    
+    int mounth_convert(char time[]){
+        if(strcmp(time,"Jan")==0)  return 1;
+        if(strcmp(time,"Feb")==0)  return 2;
+        if(strcmp(time,"Mar")==0)  return 3;
+        if(strcmp(time,"Apr")==0)  return 4;
+        if(strcmp(time,"May")==0)  return 5;
+        if(strcmp(time,"June")==0)  return 6;
+        if(strcmp(time,"July")==0)  return 7;
+        if(strcmp(time,"Aug")==0)  return 8;
+        if(strcmp(time,"Sept")==0)  return 9;
+        if(strcmp(time,"Oct")==0)  return 10;
+        if(strcmp(time,"Nov")==0)  return 11;
+        if(strcmp(time,"Dec")==0)  return 12;
+        
+    }
+    int weekday_convert(char time[]){
+        if(strcmp(time,"Sun")==0)  return 1;
+        if(strcmp(time,"Mon")==0)  return 2;
+        if(strcmp(time,"Tues")==0)  return 3;
+        if(strcmp(time,"Wed")==0)  return 4;
+        if(strcmp(time,"Thurs")==0)  return 5;
+        if(strcmp(time,"Fri")==0)  return 6;
+        if(strcmp(time,"Sat")==0)  return 7;
+    }
+    int checktime(int timer , char file_time[], char weekday[] , char mounth[] , char week[] , char second[] , char year[] ){    
+        char file_weekday[10];
+        char file_mounth[10];
+        int file_hour;
+        int file_min;
+        int file_second;
+        int file_year;
+        int file_week_count;
+        sscanf(file_time,"%s %s %d %d:%d:%d %d",file_weekday,file_mounth,&file_week_count,&file_hour,&file_min,&file_second,&file_year);
+        int input_year;
+        sscanf(year,"%d",&input_year);
+        if(((input_year>file_year)&&(timer==0))||(input_year<file_year)&&(timer==1))  return 0;
+        if(((mounth_convert(mounth)>mounth_convert(file_mounth))&&(timer==0))||((mounth_convert(mounth)<mounth_convert(file_mounth))&&(timer==1))) return 0;
+        int input_week_count;
+        sscanf(week,"%d",&input_week_count);
+        if(((input_week_count>file_week_count)&&(timer==0))||((input_week_count>file_week_count)&&(timer==0))) return 0;
+        if(((weekday_convert(weekday)>weekday_convert(file_weekday))&&(timer==0))||((weekday_convert(weekday)<weekday_convert(file_weekday))&&(timer==1))) return 0;
+        int input_hour;
+        int input_min;
+        int input_sec;
+        sscanf(second,"%d:%d:%d",&input_hour,&input_min,&input_sec);
+        input_sec=input_sec+60*input_min+3600*input_hour;
+        file_second=file_second+60*file_min+3600*file_hour;
+        if(((input_sec>file_second)&&(timer==0))||((input_sec>file_second)&&(timer==0))) return 0;
+        return 1;
     }
     void renew_timeline(){
         //when we call this function we are in commit folder where it has timeline.txt:
@@ -1050,6 +1098,39 @@ char time_path[90];
         system("rm -r .neogit");
         copy_untracktedfiles(result_folder_name,result_folder_path);
         //now we are in neogit_project_location
+    }
+    check_star_add(char input[]){
+        int len = strlen(input);
+        int flag=0;
+        for(int i=0;i<len;i++){
+            if(input[i]=='*'){
+                flag++;
+                break;
+            }
+        }
+        if(flag==1){
+            char command[100];
+            strcpy(command,"ls -a ");
+            strcat(command,input);
+            strcat(command," > wildcard.txt");
+            system(command);
+            char search[30];
+            FILE * wildcard = fopen("wildcard.txt","r");
+            char files[300][90];
+            int counter=0;
+            while(fgets(search,30,wildcard)){
+                int length = strlen(search);
+                search[length-1]='\0';
+                strcpy(files[counter],search);
+                counter++;
+            }
+            fclose(wildcard);
+            system("rm wildcard.txt");
+            for(int i=0;i<counter;i++){
+                add_file(files[i],0);
+            }
+        }
+        return flag;
     }
 int main(int argc , char * argv[]){
     // we pure all txt files that we need for our programm in .neogit_app folder in /home and we made that before;
@@ -1194,7 +1275,9 @@ int main(int argc , char * argv[]){
             }
             fclose(reset);
         }else{
-            add_file(argv[2],0);
+            if(check_star_add(argv[2])==0){
+                add_file(argv[2],0);
+            }
         }
     }else if(strcmp(argv[1],"reset")==0){
         if(testproject()==0){
@@ -1364,6 +1447,9 @@ int main(int argc , char * argv[]){
         chdir("../..");
         //renew timeline.txt
         renew_timeline();
+        FILE * present_commit_file = fopen("present_commit.txt","w");
+        fprintf(present_commit_file,"%s\n",hash);
+        fclose(present_commit_file);
         //now all files where commited there last modified time has been commited:
         chdir("..");
         system("mkdir tempstagingarea");
@@ -1612,6 +1698,9 @@ int main(int argc , char * argv[]){
             }
         }
     }else if((strcmp(argv[1],"log")==0)&&((strcmp(argv[2],"-since")==0)||(strcmp(argv[2],"-before")==0))){
+        int timer;
+        if(strcmp(argv[2],"-since")==0) timer==0;
+        if(strcmp(argv[2],"-before")==0) timer==1;
         //it is classify by ctime output;
         char pathes[400][90];
         testproject();
@@ -1637,13 +1726,7 @@ int main(int argc , char * argv[]){
             int len = strlen(search);
             search[len-1]='\0';
             fclose(commit);
-            if(flag==0){
-                if((checktime(search,argv[3],argv[4])==1)){
-                    flag++;
-                }else{
-                    continue;
-                }
-            }
+            if(checktime(timer,search,argv[3],argv[4],argv[5],argv[6],argv[7])){
                 FILE * commit2 = fopen(pathes[i],"r"); 
                 char details[120];
                 fgets(details,120,commit);
@@ -1657,7 +1740,7 @@ int main(int argc , char * argv[]){
                 fgets(details,120,commit);
                 printf("MESSAGE : %s\n",details);
                 fclose(commit2);
-
+            }
         }
     }else if((strcmp(argv[1],"log")==0)&&(strcmp(argv[2],"-search")==0)){
         char pathes[400][90];
@@ -1854,6 +1937,12 @@ int main(int argc , char * argv[]){
         strcat(command1," ");
         strcat(command1,in_loc);
         system(command1);
+        //we update present_commit.txt in .neogit and then copy .neogit to it:
+        chdir("..");
+        FILE * present_commit_file = fopen("present_commit.txt","w");
+        fprintf(present_commit_file,"%s\n",search_commits_copy);
+        fclose(present_commit_file);
+        //now it gets update; 
         char command2[200];
         strcpy(command2,"cp -r ");
         strcat(command2,neogit_project_location);
@@ -1946,6 +2035,10 @@ int main(int argc , char * argv[]){
             permisson_flag++;
         }
         chdir("..");
+        // i write present_commit.txt witch has name of our commit that we are on it;
+        FILE * present_commit_file = fopen("present_commit.txt","w");
+        fprintf(present_commit_file,"%s\n",argv[3]);
+        fclose(present_commit_file);
         char command1[180];
         strcpy(command1,"cp -r ");
         strcat(command1,argv[3]);
@@ -2024,11 +2117,44 @@ int main(int argc , char * argv[]){
         system(result);
         return 0;
     }else if((strcmp(argv[1],"revert")==0)&&(strcmp(argv[2],"[e]")==0)){
-    }else if(strcmp(argv[1],"tag")&&(argc>=6)){
+    }else if(strcmp(argv[1],"tag")&&(strcmp(argv[2],"-a")==0)){
         testproject();
         chdir(".neogit/commits");
         // we create tag.txt which has all tags with commits ID in it:
-        FILE * tag_file = fopen("tags.txt","w");
+        char tags_location[90];
+        strcpy(tags_location,neogit_project_location);
+        strcat(tags_location,"/.neogit/commits/tags.txt");
+        //at first check if we had this tag before or not?
+        if(checkdirectory(tags_location)==0){
+            FILE * tag_file = fopen("tags.txt","r");
+            char tag_copy[40];
+            strcpy(tag_copy,argv[3]);
+            strcat(tag_copy,"\n");
+            char search_tag[40];
+            int tag_flag=0;
+            while(fgets(search_tag,40,tag_file)){
+                if(strcmp(search_tag,tag_copy)==0){
+                    flag++;
+                    break;
+                }
+            }
+            fclose(tag_file);
+            if(flag==1){
+                printf("there is a tag with this name!\n");
+                printf("enter another tag!\n");
+                return 0;
+            }
+        }
+        //at first we should checkout that if there is c flag or not:||m flag :
+        char test[50];
+        strcpy(test,argv[argc-3]);
+        int check_flag=0;
+        if(((test[0]=='[')&&(test[1]=='-'))&&(test[2]=='c')){   
+            handle_cflag(argv[argc-2]);
+        }else if(((test[0]=='[')&&(test[1]=='-'))&&(test[2]=='m'))
+        FILE * tag_file = fopen(tags_location,"a");
+
+        
     }
 
 
