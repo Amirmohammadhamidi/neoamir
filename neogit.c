@@ -333,6 +333,12 @@ int modifyfile(char file[]){
                 chdir(path);
                 modify(1);
             }else if(checkdirectory(path)==0){
+                strcpy(addedfile,neogit_project_location);
+                strcat(addedfile,"/.neogit/staged_files/Astagedfiles.txt");
+                FILE * add = fopen(addedfile,"a");
+                fprintf(add,"%s",path);
+                fprintf(add,"\n");
+                fclose(add);
                 modifyfile(filepath);
             }else{
                 printf("there isn't any file or directory with this name");
@@ -408,21 +414,79 @@ int modifyfile(char file[]){
             }
         }
     }
-    void delstage(char * path){
-        
+    int delstage(char path[] , int mode){
+        char loc[100];
+        char temploc[100];
+        char pathcopy[100];
+        strcpy(pathcopy,path);
+        strcat(pathcopy,"\n");
+        strcpy(loc,neogit_project_location);
+        strcat(loc,"/.neogit/staged_files/Astagedfiles.txt");
+        FILE * Astagedfiles = fopen(loc,"r");
+        strcpy(temploc,neogit_project_location);
+        strcat(temploc,"/.neogit/staged_files/temp.txt");
+        FILE * temp = fopen(temploc,"w");
+        char search[100];
+        while(fgets(search,100,Astagedfiles)){
+            if(strcmp(search,pathcopy)!=0){
+                fprintf(temp,"%s",search);
+            }
+        }
+        fclose(Astagedfiles);
+        fclose(temp);
+        char remove[200];
+        strcpy(remove,"rm ");
+        strcat(remove,loc);
+        system(remove);
+        char rename[200];
+        strcpy(rename,"mv ");
+        strcat(rename,temploc);
+        strcat(rename," ");
+        strcat(rename,loc);
+        system(rename);
+        if(mode==0){
+            char stageloc[80];
+            char stemploc[80];
+            strcpy(stageloc,neogit_project_location);
+            strcat(stageloc,"/.neogit/staged_files/staged_files.txt");
+            FILE * staged_files = fopen(stageloc,"r");
+            strcpy(stemploc,neogit_project_location);
+            strcat(stemploc,"/.neogit/staged_files/stempfiles.txt");
+            FILE * stemp = fopen(stemploc,"w");
+            char search[80];
+            while(fgets(search,80,staged_files)){
+                if(strcmp(search,pathcopy)==0){
+                    fgets(search,80,staged_files);
+                    continue;
+                }
+                fprintf(stemp,"%s",search);
+            }
+            fclose(staged_files);
+            fclose(stemp);
+            char sremove[90];
+            strcpy(sremove,"rm ");
+            strcat(sremove,stageloc);
+            system(sremove);
+            char srename[120];
+            strcpy(srename,"mv ");
+            strcat(srename,stemploc);
+            strcat(srename," ");
+            strcat(srename,stageloc);
+            system(srename);
+        }
     }
-    void rest(char * apath){
+    void rest(char apath[]){
             //now we get our fullpath of file;
             if(checkdirectory(apath)==1){
-                delstage(apath);
+                delstage(apath,1);
                 chdir(apath);
                 int count=0;
                 system("touch file.txt");
                 system("ls -a > file.txt");
                 FILE * files = fopen("file.txt","r");
-                char search[50];
-                char filenames[50][50];
-                while(fgets(search,50,files)){
+                char search[80];
+                char filenames[80][80];
+                while(fgets(search,80,files)){
                     if(strcmp(search,"file.txt\n")!=0){
                     strcpy(filenames[count],search);
                     count++;
@@ -438,15 +502,15 @@ int modifyfile(char file[]){
                     system("pwd > path.txt");
                     FILE * pathfile = fopen("path.txt","r");
                     fgets(path,90,pathfile);
+                    fclose(pathfile);
+                    system("rm path.txt");
                     int length = strlen(path);
                     path[length-1]='/';
                     strcat(path,filenames[i]);
-                    fclose(pathfile);
-                    system("rm path.txt");
                     rest(path);
                 }
             }else if(checkdirectory(apath)==0){
-                delstage(apath);
+                delstage(apath,0);
             }else{
                 printf("there isn't any file or directory with this name");
             }
@@ -580,8 +644,8 @@ int main(int argc , char * argv[]){
             printf("you didn't initialized neogit in your project\n");
             return 0;
         }
-        //argv[2] is path of our file:
-        //rest function will do this part:
+        // argv[2] is path of our file:
+        // rest function will do this part:
         if(strcmp(argv[2],"-f")==0){
             for(int i = 3 ; i<argc ; i++ ){
                 char path[90];
@@ -596,8 +660,6 @@ int main(int argc , char * argv[]){
                 strcat(path,argv[i]);
                 rest(path);
             }
-        }else if(strcmp(argv[3],"-undo")==0){
-
         }else{
             char path[90];
             system("touch path.txt");
