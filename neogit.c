@@ -7,6 +7,7 @@
 #include<time.h>
 char neogit_project_location[60];
 char lastfolder[90];
+char time_path[90];
 int check_exist(char searchfile[],char orgfile[]){
     char search[80];
     strcpy(search,searchfile);
@@ -140,26 +141,6 @@ void assign_global(char * type , char * name){
     } 
 }
 //it is ok!
-int difchecker(FILE * past , FILE * present){
-    //if they are same it shows 1 unless it shows 0;
-    char past_lines[100];
-    char present_lines[100];
-    int flag=0;
-    while(fgets(past_lines,100,past)){
-        flag++;
-        fgets(present_lines,100,present);
-        if(strcmp(past_lines,present_lines)!=0){
-            return 0;
-            break;
-        }
-    }
-    if(flag==0){
-        if(fgets(present_lines,100,present)){
-            return 0;
-        }
-    }
-    return 1;
-}
 int checkdirectory(char * path){
     struct stat filestat ;
     if(stat(path,&filestat)==0){
@@ -573,6 +554,8 @@ int modifyfile(char file[],int mode){
         int flag=0;
         while(fgets(search,80,staged_files)){
             if(strcmp(search,path)==0){
+                fgets(search,80,staged_files);
+                strcpy(time_path,search);
                 return 1;
             }
             flag++;
@@ -595,10 +578,14 @@ int modifyfile(char file[],int mode){
                 flag++;
             }
         }
+        fclose(timeline);
         if(flag==0){
             int len = strlen(path);
             path[len-1]='\0';
             printf("%s : ",path);
+            if(check_stagedfiles(path)==1)
+            printf("+A\n");
+            else
             printf("-A\n");
         }
     }
@@ -643,24 +630,33 @@ int modifyfile(char file[],int mode){
         }
     }
     void status(char alocation[]){
+        testproject();
         FILE * timeline = fopen(alocation,"r");
         char search[80];
         char pathcopy1[90];
         char pathcopy2[90];
         char path[90];
+        char pathcopy[90];
+        char abbrevation[90];
+        strcpy(abbrevation,neogit_project_location);
+        int a_len = strlen(abbrevation);
+        abbrevation[a_len-1]='\0';
         while(fgets(search,80,timeline)){
             strcpy(path,search);
             int length = strlen(path);
             path[length-1]='\0';
-            printf("%s : ",path);
             strcpy(pathcopy1,path);
             strcpy(pathcopy2,path);
-            if(check_stagedfiles(pathcopy1)==1)
-            printf("+");
-            else if((check_stagedfiles(pathcopy2)==-1)||(check_stagedfiles(pathcopy2)==0))
-            printf("-");
+            strcpy(pathcopy,path);
+            strcpy(pathcopy,pathcopy+a_len);
+            printf("%s : ",pathcopy);
             if(checkdirectory(path)==-1){
                 fgets(search,80,timeline);
+                if(check_stagedfiles(pathcopy1)==1){
+                    printf("+");
+                } else if((check_stagedfiles(pathcopy2)==-1)||(check_stagedfiles(pathcopy2)==0)){
+                    printf("-");
+                }
                 printf("D\n");
             }else{
                 struct stat filestat;
@@ -668,9 +664,22 @@ int modifyfile(char file[],int mode){
                     time_t present = filestat.st_mtime;
                     fgets(search,80,timeline);
                     if(strcmp(search,ctime(&present))!=0){
+                        if(check_stagedfiles(pathcopy1)==1){
+                            printf("+");
+                        } else if((check_stagedfiles(pathcopy2)==-1)||(check_stagedfiles(pathcopy2)==0)){
+                            printf("-");
+                        }
                         printf("M\n");
                     }else{
-                        printf("not modified\n");
+                        int flag=0;
+                        if(check_stagedfiles(pathcopy1)==1){
+                            flag++;
+                        }                 
+                        if(flag==1){
+                            printf("+A\n");
+                        }else{
+                            printf("not modified\n");
+                        }
                     }
                 }
             }
@@ -727,11 +736,42 @@ int modifyfile(char file[],int mode){
             }
         }
     }
-    void makecommits_hash(char file_hash[]){
+    int makecommits_hash(char file_hash[]){
         FILE * commits_hashs = fopen("/home/.neogit_app/commits_hashs.txt","r");
         char hash[60];
         fgets(hash , 60 , commits_hashs);
         fclose(commits_hashs);
+        int length = strlen(hash);
+        if(hash[length-1]=='\n')
+        hash[length-1]='\0';
+        //get all present location:
+        system("pwd > present_loc.txt");
+        FILE * present_location = fopen("present_loc.txt","r");
+        char present_loc[90];
+        fgets(present_loc,90,present_location);
+        fclose(present_location);
+        system("rm present_loc.txt");
+        int len = strlen(present_loc);
+        present_loc[len-1]='\0';
+        len--;
+        //now we get that;
+        //now we find out if there is any directory (commits) or not:if there is we get its last directory:
+        system("ls > det.txt");
+        FILE * details = fopen("det.txt","r");
+        char search_det[30];
+        char search_det_copy[30];
+        int search_det_flag=0;
+        while(fgets(search_det,30,details)){
+            if(strcmp(search_det,"det.txt\n")==0)
+            continue;
+            strcpy(search_det_copy,search_det);
+            search_det_flag++;
+        }
+        fclose(details);
+        system("rm det.txt");
+        int searc_det_copy_len=strlen(search_det_copy);
+        search_det_copy[searc_det_copy_len-1]='\0';
+        //now we get the last folder too;
         FILE * commits_hashs2 = fopen("/home/.neogit_app/commits_hashs.txt","w");
         int HASH;
         sscanf(hash ,"%i", &HASH);
@@ -740,10 +780,26 @@ int modifyfile(char file[],int mode){
         fclose(commits_hashs);
         char hashcopy[60];
         sprintf(hashcopy , "%i" , HASH);
-        char command[70];
-        strcpy(command ,"mkdir ");
-        strcat(command , hashcopy);
-        system(command);
+        if(search_det_flag>0){
+            char copy_command[160];
+            strcpy(copy_command,"cp -r ");
+            strcat(copy_command,search_det_copy);
+            strcat(search_det_copy,".orig");
+            strcat(copy_command," ");
+            strcat(copy_command,search_det_copy);
+            system(copy_command);
+            char rename_command[160];
+            strcpy(rename_command,"mv ");
+            strcat(rename_command,search_det_copy);
+            strcat(rename_command," ");
+            strcat(rename_command,hashcopy);
+            system(rename_command);
+        }else{
+            char command[70];
+            strcpy(command ,"mkdir ");
+            strcat(command , hashcopy);
+            system(command);
+        }
         chdir(hashcopy);
         strcpy(file_hash,hashcopy);
     }
@@ -835,6 +891,31 @@ int modifyfile(char file[],int mode){
     }
     int checktime(char commit_time[],char date[],char second[]){
         
+    }
+    void renew_timeline(){
+        //when we call this function we are in commit folder where it has timeline.txt:
+        //we go one folder back to access timeline.txt and also staged_files.txt:
+        FILE * temp_timeline = fopen("temp_timeline.txt","w");
+        FILE * timeline = fopen("timeline.txt","r");
+        char search[90];
+        char path[80];
+        while(fgets(search,90,timeline)){
+            fprintf(temp_timeline,"%s",search);
+            strcpy(path,search);
+            int len = strlen(path);
+            path[len-1]='\0';
+            if(check_stagedfiles(path)==1){
+                fprintf(temp_timeline,"%s",time_path);
+                fgets(search,90,timeline);
+            }else if(check_stagedfiles(path)==0){
+                fgets(search,90,timeline);
+                fprintf(temp_timeline,"%s",search);
+            }
+        }
+        fclose(temp_timeline);
+        fclose(timeline);
+        system("rm timeline.txt");
+        system("mv temp_timeline.txt timeline.txt");
     }
     //search,date_bday,date_bsecond
 int main(int argc , char * argv[]){
@@ -1046,12 +1127,12 @@ int main(int argc , char * argv[]){
         char files_abs_path[300][80];
         char location[90];
         strcpy(location,neogit_project_location);
-        strcat(location,"/.neogit/staged_files/Astagedfiles.txt");
-        FILE * Astagedfiles = fopen(location,"r");
+        strcat(location,"/.neogit/staged_files/staged_files.txt");
+        FILE * staged_files = fopen(location,"r");
         char search[90];
         int flag=0;
         int counter=0;
-        for(int i=0 ; fgets(search,90,Astagedfiles);i++){
+        for(int i=0 ; fgets(search,90,staged_files);i++){
             int len = strlen(search);
             search[len-1]='\0';
             if(checkdirectory(search)==0){
@@ -1118,6 +1199,9 @@ int main(int argc , char * argv[]){
         commits_details(HEAD_branch,hash,number_files_commited,author_name,message);
         //remove all staged_files:
         chdir("../..");
+        //renew timeline.txt
+        renew_timeline();
+        //now all files where commited there last modified time has been commited:
         chdir("..");
         system("mkdir tempstagingarea");
         system("cp staged_files/trackted_files.txt tempstagingarea");
@@ -1278,8 +1362,7 @@ int main(int argc , char * argv[]){
             fclose(commit);
         }
         return 0;
-    }
-    else if((strcmp(argv[1],"log")==0)&&(strcmp(argv[2],"-branch")==0)){
+    }else if((strcmp(argv[1],"log")==0)&&(strcmp(argv[2],"-branch")==0)){
         char pathes[400][90];
         testproject();
         char allcommits_locations[90];
@@ -1523,13 +1606,96 @@ int main(int argc , char * argv[]){
         strcat(new_branch_absolutepath,argv[2]);
         int len = strlen(searchcopy);
         searchcopy[len-1]='\0';
+        chdir(searchcopy);
+        chdir("..");
+        system("pwd > loc.txt");
+        FILE * location = fopen("loc.txt","r");
+        char loc[90];
+        fgets(loc,90,location);
+        fclose(location);
+        system("rm loc.txt");
+        //now we get our present branch;
+        system("ls > commits_det.txt");
+        FILE * commits_det = fopen("commits_det.txt","r");
+        char search_commits[90];
         char cp_command[150];
-        strcpy(cp_command,"cp -r ");
-        strcat(cp_command,searchcopy);
-        strcat(cp_command," ");
-        strcat(cp_command,new_branch_absolutepath);
-        system(cp_command);
+        while(fgets(search_commits,90,commits_det)){
+            int len = strlen(search_commits);
+            search_commits[len-1]='\0';
+            strcpy(cp_command,"cp -r ");
+            strcat(cp_command,search_commits);
+            strcat(cp_command," ");
+            strcat(cp_command,new_branch_absolutepath);
+            system(cp_command);
+            if(strcmp(search_commits,searchcopy)==0){
+                break;
+            }
+        }
+        fclose(commits_det);
+        system("rm commits_det.txt");
         //details will not change even ID(hash);
+    }else if((strcmp(argv[1],"checkout")==0)&&(strcmp(argv[2],"-b")==0)){   
+        if(testproject()==0){
+            printf("you didn't initialized neogit in your project.\n");
+            return 0;
+        }
+        chdir("..");
+        system("pwd > loc_neogit_project.txt");
+        FILE * loc = fopen("loc_neogit_project.txt","r");
+        char in_loc[90];
+        fgets(in_loc,90,loc);
+        int in_loc_len = strlen(in_loc);
+        in_loc[in_loc_len-1]='\0';
+        fclose(loc);
+        system("rm loc_neogit_project.txt");
+        chdir(neogit_project_location);
+        system("./neogit status > status_temp.txt");
+        char search[90];
+        FILE * status = fopen("status_temp.txt","r");
+        int flag=0;
+        while(fgets(search,90,status)){
+            if((strstr(search,": +M")!=NULL)||(strstr(search,": -M")!=NULL)){
+                flag++;
+                printf("there is modified file in your project!\n");
+                break;
+            }
+        }
+        fclose(status);
+        system("rm status_temp.txt");
+        if(flag==1) return 0;
+        char branch_commit_location[90];
+        strcpy(branch_commit_location,neogit_project_location);
+        strcat(branch_commit_location,"/.neogit/commits/");
+        strcat(branch_commit_location,argv[3]);
+        chdir(branch_commit_location);
+        system("ls > commit_checkout.txt");
+        FILE * files = fopen("commit_checkout.txt","r");
+        char search_commits[90];
+        char search_commits_copy[90];
+        while(fgets(search_commits,90,files)){
+            strcpy(search_commits_copy,search_commits);
+        }
+        int len = strlen(search_commits_copy);
+        search_commits_copy[len-1]='\0';
+        fclose(files);
+        system("rm commit_checkout.txt");
+        strcat(branch_commit_location,search_commits_copy);
+        char command1[200];
+        strcpy(command1,"cp -r ");
+        strcat(command1,branch_commit_location);
+        strcat(command1," ");
+        strcat(command1,in_loc);
+        system(command1);
+        char N[90];
+        strcpy(N,neogit_project_location+in_loc_len);
+        printf("%s",N);
+        char command2[200];
+        strcpy(command2,"cp -r ");
+        strcat(command2,neogit_project_location);
+        strcat(command2,"/.neogit");
+        strcat(command2," ");
+        //strcat(command2,)
+        return 0;
     }
 
 
