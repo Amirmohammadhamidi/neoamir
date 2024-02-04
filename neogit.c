@@ -745,7 +745,7 @@ int modifyfile(char file[],int mode){
         chdir(hashcopy);
         strcpy(file_hash,hashcopy);
     }
-    int makefolders(char relativepath[] , char absolutepath[]){
+    int makefolders(char relativepath[] , char absolutepath[] , char hash[]){
         //get our present location:
         char ploc[80];
         system("pwd > ploc.txt");
@@ -778,6 +778,11 @@ int modifyfile(char file[],int mode){
             strcat(allfiles,ptr);
         }
         char COMMAND[100];
+        char dloc[80];
+        strcpy(dloc,hash);
+        strcat(dloc,"/");
+        strcat(dloc,lastfolder);
+        chdir("..");
         strcpy(COMMAND,"cp ");
         strcat(COMMAND,neogit_project_location);
         strcat(COMMAND,"/.neogit/staged_files/");
@@ -790,10 +795,20 @@ int modifyfile(char file[],int mode){
         }
         strcat(COMMAND,file);
         strcat(COMMAND," ");
-        strcat(COMMAND,lastfolder);
+        strcat(COMMAND,dloc);
         system(COMMAND);
+        chdir(hash);
     }
     void commits_details(char hash[],int number_files,char author_name[],char message[]){
+        char present_path[80];
+        system("pwd > present_path.txt");
+        FILE * p_path = fopen("present_path.txt","r");
+        fgets(present_path,80,p_path);
+        fclose(p_path);
+        system("rm present_path.txt");
+        FILE * allcommits = fopen("/home/.neogit_app/allcommits.txt","a");
+        fprintf(allcommits,"%s",present_path);
+        fclose(allcommits);
         //hash
         //date
         //number of files
@@ -802,12 +817,16 @@ int modifyfile(char file[],int mode){
         FILE * details = fopen("commits_details.txt","w");
         fprintf(details,"%s\n",hash);
         time_t present = time(NULL);
-        fprintf(details,"%s\n%d\n%s\n%s\n",ctime(&present),number_files,author_name,message);
+        fprintf(details,"%s%d\n%s\n%s\n",ctime(&present),number_files,author_name,message);
         fclose(details);
-        printf(" ID : %s\n",hash);
-        printf("DATE : %s\n",ctime(&present));
+        printf("ID : %s\n",hash);
+        printf("DATE : %s",ctime(&present));
         printf("MESSAGE : %s\n",message);
     }
+    int checktime(char commit_time[],char date[],char second[]){
+        
+    }
+    //search,date_bday,date_bsecond
 int main(int argc , char * argv[]){
     // we pure all txt files that we need for our programm in .neogit_app folder in /home and we made that before;
     //now we have this 2D strig which have all commands:
@@ -854,7 +873,10 @@ int main(int argc , char * argv[]){
             system("touch Astagedfiles.txt");
             chdir("..");
             system("mkdir commits");
-            chdir("..");
+            chdir("commits");
+            system("touch allbranches.txt");
+            system("touch HEAD.txt");
+            chdir("../..");
             ////////
             writetimeline();
             chdir(".neogit");
@@ -1055,34 +1077,43 @@ int main(int argc , char * argv[]){
         fullpath[len_path-1]='/';
         system("rm fullpath.txt");
         // it is going to changed:
-        strcat(fullpath,"/master");
-        if(checkdirectory(fullpath)==-1){
-            system("mkdir master");
-        }
+        //get our present_branch:
+        FILE * present_branch = fopen("HEAD.txt","r");
+        char HEAD_branch[90];
+        fgets(HEAD_branch,90,present_branch);
+        fclose(present_branch);
+        if(HEAD_branch==NULL){
+        
+        ///now we get our present branch:
+        strcat(fullpath,"/");
+        strcat(fullpath,HEAD_branch);
+        // if(checkdirectory(fullpath)==-1){
+        //     system("mkdir master");
+        // }
         chdir("master");
         char hash[80];
         makecommits_hash(hash);
         //now we are inside our commit with hash name;
         for(int i=0 ;i<counter;i++){
-            makefolders(pathes[i],files_abs_path[i]);
+            makefolders(pathes[i],files_abs_path[i],hash);
         }
         commits_details(hash,number_files_commited,author_name,message);
     }else if(strcmp(argv[1],"set")==0){
-        if(argv[4]!=NULL){
+        if(argv[5]==NULL){
             printf("you didn't enter shortcut\n");
             return 0;
         }
         char message[100];
         strcpy(message,argv[3]);
         char shortcut[70];
-        strcpy(shortcut,argv[4]);
-        FILE * sortcuts_file = fopen("/home/.neogit_app/shortcuts_file.txt","a");
-        fprintf(sortcuts_file,"%s\n",shortcut);
+        strcpy(shortcut,argv[5]);
+        FILE * shortcuts_file = fopen("/home/.neogit_app/shortcuts_file.txt","a");
+        fprintf(shortcuts_file,"%s\n",shortcut);
         fprintf(shortcuts_file,"%s\n",message);
         fclose(shortcuts_file);
     }else if(strcmp(argv[1],"replace")==0){
         char shortcut[90];
-        strcpy(shortcut,argv[4]);
+        strcpy(shortcut,argv[5]);
         strcat(shortcut,"\n");
         FILE * shortcuts_file = fopen("/home/.neogit_app/shortcuts_file.txt","r");
         FILE * shortcuts_temp = fopen("/home/.neogit_app/shortcuts_temp.txt","w");
@@ -1103,11 +1134,27 @@ int main(int argc , char * argv[]){
         strcpy(command2,"mv /home/.neogit_app/shortcuts_temp.txt /home/.neogit_app/shortcuts_file.txt");
         system(command2);
     }else if((strcmp(argv[1],"commit")==0)&&(strcmp(argv[2],"-s")==0)){
-        
-
-
-
-        
+        FILE * shortcuts_file = fopen("/home/.neogit_app/shortcuts_file.txt","r");
+        char search[90];
+        char shortcut[90];
+        strcpy(shortcut,argv[3]);
+        strcat(shortcut,"\n");
+        while(fgets(search,90,shortcuts_file)){
+            if(strcmp(search,shortcut)==0){
+                fgets(search,90,shortcuts_file);
+                char message[90];
+                message[0]='"';
+                strcat(message,search);
+                int len = strlen(message);
+                message[len-1]='"';
+                char command[80];
+                strcpy(command,"./neogit ");
+                strcat(command,"commit -m ");
+                strcat(command,message);
+                system(command);
+                break;
+            }
+        }
     }else if(strcmp(argv[1],"remove")==0){
         char shortcut[90];
         strcpy(shortcut,argv[3]);
@@ -1115,9 +1162,11 @@ int main(int argc , char * argv[]){
         FILE * shortcuts_file = fopen("/home/.neogit_app/shortcuts_file.txt","r");
         FILE * shortcuts_temp = fopen("/home/.neogit_app/shortcuts_temp.txt","w");
         char search[90];
+        int flag=0;
         while(fgets(search,90,shortcuts_file)){
             if(strcmp(search,shortcut)==0){
                 fgets(search,90,shortcuts_file);
+                flag++;
                 continue;
             }
             fprintf(shortcuts_temp,"%s",search);
@@ -1130,7 +1179,163 @@ int main(int argc , char * argv[]){
         char command2[120];
         strcpy(command2,"mv /home/.neogit_app/shortcuts_temp.txt /home/.neogit_app/shortcuts_file.txt");
         system(command2);
-    }
+        if(flag==0){
+            printf("there isn't any shortcut with this name!\n");
+            return 0;
+        }
+    }else if((strcmp(argv[1],"log")==0)&&(argc==2)){
+        char pathes[400][90];
+        FILE * allcommits = fopen("/home/.neogit_app/allcommits.txt","r");
+        int counter=0;
+        for(; fgets(pathes[counter],90,allcommits);counter++){
+            int len = strlen(pathes[counter]);
+            pathes[counter][len-1]='\0';
+        }
+        fclose(allcommits);
+        for(int i=counter-1;i>=0;i--){
+            chdir(pathes[i]);
+            strcat(pathes[i],"/commits_details.txt");
+            FILE * commit = fopen(pathes[i],"r");
+            char search[120];
+            fgets(search,120,commit);
+            printf("ID : %s",search);
+            fgets(search,120,commit);
+            printf("DATE : %s",search);
+            fgets(search,120,commit);
+            printf("NUMBER OF COMMITED FILES : %s",search);
+            fgets(search,120,commit);
+            printf("AUTHOR : %s",search);
+            fgets(search,120,commit);
+            printf("MESSAGE : %s\n",search);
+            fclose(commit);
+        }
+        return 0;
+    }else if((strcmp(argv[1],"log")==0)&&(strcmp(argv[2],"-branch")==0)){
+
+    }else if((strcmp(argv[1],"log")==0)&&(strcmp(argv[2],"-author")==0)){
+        char pathes[400][90];
+        FILE * allcommits = fopen("/home/.neogit_app/allcommits.txt","r");
+        int counter=0;
+        for(; fgets(pathes[counter],90,allcommits);counter++){
+            int len;
+            len = strlen(pathes[counter]);
+            pathes[counter][len-1]='\0';
+        }
+        fclose(allcommits);
+        for(int i=counter-1;i>=0;i--){
+            chdir(pathes[i]);
+            strcat(pathes[i],"/commits_details.txt");
+            FILE * commit = fopen(pathes[i],"r");
+            char search[100];
+            for(int i=0;i<4;i++){
+                fgets(search,100,commit);
+            }
+            int len = strlen(search);
+            search[len-1]='\0';
+            fclose(commit);
+            if(strcmp(search,argv[3])==0){
+                FILE * commit2 = fopen(pathes[i],"r"); 
+                char details[120];
+                fgets(details,120,commit);
+                printf("ID : %s",details);
+                fgets(details,120,commit);
+                printf("DATE : %s",details);
+                fgets(details,120,commit);
+                printf("NUMBER OF COMMITED FILES : %s",details);
+                fgets(details,120,commit);
+                printf("AUTHOR : %s",details);
+                fgets(details,120,commit);
+                printf("MESSAGE : %s\n",details);
+                fclose(commit2);
+            }
+        }
+    }else if((strcmp(argv[1],"log")==0)&&((strcmp(argv[2],"-since")==0)||(strcmp(argv[2],"-before")==0))){
+        //it is classify by ctime output;
+        char pathes[400][90];
+        FILE * allcommits = fopen("/home/.neogit_app/allcommits.txt","r");
+        int counter=0;
+        for(; fgets(pathes[counter],90,allcommits);counter++){
+            int len = strlen(pathes[counter]);
+            pathes[counter][len-1]='\0';
+        }
+        fclose(allcommits);
+        int flag=0;
+        for(int i=counter-1;i>=0;i--){
+            chdir(pathes[i]);
+            strcat(pathes[i],"/commits_details.txt");
+            FILE * commit = fopen(pathes[i],"r");
+            char search[100];
+            for(int i=0;i<2;i++){
+                fgets(search,100,commit);
+            }
+            int len = strlen(search);
+            search[len-1]='\0';
+            fclose(commit);
+            if(flag==0){
+                if((checktime(search,argv[3],argv[4])==1)){
+                    flag++;
+                }else{
+                    continue;
+                }
+            }
+                FILE * commit2 = fopen(pathes[i],"r"); 
+                char details[120];
+                fgets(details,120,commit);
+                printf("ID : %s",details);
+                fgets(details,120,commit);
+                printf("DATE : %s",details);
+                fgets(details,120,commit);
+                printf("NUMBER OF COMMITED FILES : %s",details);
+                fgets(details,120,commit);
+                printf("AUTHOR : %s",details);
+                fgets(details,120,commit);
+                printf("MESSAGE : %s\n",details);
+                fclose(commit2);
+
+        }
+    }else if((strcmp(argv[1],"log")==0)&&(strcmp(argv[2],"-search")==0)){
+        char pathes[400][90];
+        FILE * allcommits = fopen("/home/.neogit_app/allcommits.txt","r");
+        int counter=0;
+        for(; fgets(pathes[counter],90,allcommits);counter++){
+            int len;
+            len = strlen(pathes[counter]);
+            pathes[counter][len-1]='\0';
+        }
+        fclose(allcommits);
+        for(int i=counter-1;i>=0;i--){
+            chdir(pathes[i]);
+            strcat(pathes[i],"/commits_details.txt");
+            FILE * commit = fopen(pathes[i],"r");
+            char search[100];
+            for(int i=0;i<5;i++){
+                fgets(search,100,commit);
+            }
+            int len = strlen(search);
+            search[len-1]='\0';
+            fclose(commit);
+            int flag=0;
+            for(int i=3;argv[i]!=NULL;i++){
+                if(strstr(search,argv[i])!=NULL)
+                flag++
+            }
+            if(flag>0){
+                FILE * commit2 = fopen(pathes[i],"r"); 
+                char details[120];
+                fgets(details,120,commit);
+                printf("ID : %s",details);
+                fgets(details,120,commit);
+                printf("DATE : %s",details);
+                fgets(details,120,commit);
+                printf("NUMBER OF COMMITED FILES : %s",details);
+                fgets(details,120,commit);
+                printf("AUTHOR : %s",details);
+                fgets(details,120,commit);
+                printf("MESSAGE : %s\n",details);
+                fclose(commit2);
+            }
+        }
+    }else if()
 
 
 
