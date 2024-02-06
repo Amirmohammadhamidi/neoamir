@@ -1385,6 +1385,88 @@ char time_path[90];
             }   
         }
     }
+    void hock1(char file[],char prefix[]){
+        int test=0;
+        FILE * file1 = fopen(file,"r");
+        printf("file : %s\n",file);
+        if(strcmp(prefix,"txt")){
+            char search[90];
+            while(fgets(search,90,file1)){
+                if(strstr(search," TODO ")==0){
+                    test++;
+                    break;
+                }
+            }
+            if(test==0){
+                printf("todo-check  PASSED\n");
+            }else{
+                printf("todo-check  FAILED\n")
+            }
+        }else if((strcmp(prefix,"c")==0)||(strcmp(prefix,"cpp")==0)){
+            char search[90];
+            while(fgets(search,90,file1)){
+                if(((strstr(search," TODO ")==0)&&(search[0]=='/'))&&(search[1]=='/')){
+                    test++;
+                    break;
+                }
+            }
+            if(test==0){
+                printf("todo-check  PASSED\n");
+            }else{
+                printf("todo-check  FAILED\n")
+            }
+        }else{
+            printf("todo-check  SKIPPED\n");
+        }
+        fclose(file1)
+        
+    }
+    int hock2(char file[],char prefix[]){
+        if(((strcmp(prefix,"txt")!=0)&&(strcmp(prefix,"cpp")!=0))&&(strcmp(prefix,"c")!=0)){
+            printf("eof-blank-space...............SKIPPED\n");
+            return 0;
+        }
+        int test=0;
+        FILE * file1 = fopen(file,"r");
+        char search[90];
+        char searchcopy[90];
+        while(fgets(search,90,file1)){
+            strcpy(searchcopy,search);
+        }
+        fclose(file1);
+        int len = strlen(searchcopy);
+        if(searchcopy[len-1]!=' ')
+        printf("eof-blank-space...............PASSED\n");
+        if(searchcopy[len-1]==' ')
+        printf("eof-blank-space...............FAILED\n");
+    }
+    int hock3(char file[],char prefix[]){
+        if(((strcmp(prefix,"txt")!=0)&&(strcmp(prefix,"cpp")!=0))&&(strcmp(prefix,"c")!=0)){
+            printf("eof-blank-space...............SKIPPED\n");
+            return 0;
+        }
+
+    }
+    int hock4(char file[],char prefix[]){
+        if(((strcmp(prefix,"txt")!=0)&&(strcmp(prefix,"cpp")!=0))&&(strcmp(prefix,"c")!=0)){
+            printf("file-size-check...............SKIPPED\n");
+            return 0;
+        }
+        FILE * file1 = fopen(file,"r");
+        char search[90];
+        char searchcopy[90];
+        int LEN=0;
+        while(fgets(search,90,file1)){
+            int len = strlen(search);
+            LEN+=len-1;
+        }
+        fclose(file1);
+        if(LEN>20000){
+            printf("file-size-check...............PASSED\n");
+        }else{
+            printf("file-size-check...................FAILED\n")
+        }
+    }
 int main(int argc , char * argv[]){
     // we pure all txt files that we need for our programm in .neogit_app folder in /home and we made that before;
     //now we have this 2D strig which have all commands:
@@ -2965,7 +3047,39 @@ int main(int argc , char * argv[]){
         }
         diff_folderchecker(commit1,commit2,length);
         diff_folderchecker_reverse(commit2,commit1,length);
-    }else if((strcmp(argv[1],"merge")==0)&&(strcmp(argv[2],"-b")==0)){
+    }else if(strcmp(argv[1],"pre-commit")==0){
+        testproject();
+        chdir(".neogit/staged_files");
+        system("ls > files.txt");
+        char search[90];
+        FILE * files = fopen("files.txt");
+        while(fgets(search,90,files)){
+            if(strcmp(search,"files.txt\n")==0) continue;
+            if(strcmp(search,"Astagedfiles.txt\n")==0) continue;
+            if(strcmp(search,"trackted_files.txt\n")==0) continue;
+            if(strcmp(search,"statged_files.txt\n")==0) continue;
+            char file_name[30];
+            strcpy(file_name,search);
+            int len = strlen(file_name);
+            file_name[len-1]='\0';
+            char file_name2[30];
+            strcpy(file_name2,file_name);
+            char * ptr = strtok(file_name2,".");
+            ptr = strtok(NULL,".");
+            if(((strcmp(ptr,"txt")==0)||(strcmp(ptr,".cpp")))||(strcmp(ptr,"c")==0)){
+                hock1(file_name1,ptr);
+                hock2(file_name1,ptr);
+                hock3(file_name1,ptr);
+                hock4(file_name1,ptr);
+            }
+        }
+
+
+
+
+
+
+
 
     }else if((strcmp(argv[1],"config")==0)&&(strcmp(argv[2],"-global")==0)){
         char search; 
