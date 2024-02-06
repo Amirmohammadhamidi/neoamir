@@ -444,6 +444,9 @@ char time_path[90];
                 fprintf(add,"%s",path);
                 fprintf(add,"\n");
                 fclose(add);
+            }else{
+                printf("this file is allready in staging area\n");
+                return 0;
             }
             chdir(path);
             modify(add_mode);
@@ -455,6 +458,9 @@ char time_path[90];
                 fprintf(add,"\n");
                 fclose(add);
                 modifyfile(filepath,add_mode);
+            }else{
+                printf("this file is allready in staging area\n");
+                return 0;
             }
         }else{
             //check trackted files:
@@ -1385,7 +1391,7 @@ char time_path[90];
             }   
         }
     }
-    void hock1(char file[],char prefix[]){
+    int hock1(char file[],char prefix[]){
         int test=0;
         FILE * file1 = fopen(file,"r");
         printf("file : %s\n",file);
@@ -1398,9 +1404,9 @@ char time_path[90];
                 }
             }
             if(test==0){
-                printf("todo-check  PASSED\n");
+                printf("todo-check.............PASSED\n");
             }else{
-                printf("todo-check  FAILED\n")
+                printf("todo-check.............FAILED\n");
             }
         }else if((strcmp(prefix,"c")==0)||(strcmp(prefix,"cpp")==0)){
             char search[90];
@@ -1411,14 +1417,14 @@ char time_path[90];
                 }
             }
             if(test==0){
-                printf("todo-check  PASSED\n");
+                printf("todo-check...........PASSED\n");
             }else{
-                printf("todo-check  FAILED\n")
+                printf("todo-check.........FAILED\n");
             }
         }else{
             printf("todo-check  SKIPPED\n");
         }
-        fclose(file1)
+        fclose(file1);
         
     }
     int hock2(char file[],char prefix[]){
@@ -1441,23 +1447,28 @@ char time_path[90];
         printf("eof-blank-space...............FAILED\n");
     }
     int hock3(char file[],char prefix[]){
+        if(((strcmp(prefix,"txt")!=0)&&(strcmp(prefix,"cpp")!=0))&&(strcmp(prefix,"c")!=0)){
+            printf("file-size-check...............SKIPPED\n");
+            return 0;
+        }
         char command[90];
-        strcpy(command,"du -h");
+        strcpy(command,"du ");
         strcat(command,file);
-        strcat(command," > size.txt");
+        strcat(command," >size.txt");
         system(command);
+        FILE * size = fopen("size.txt","r");
         char search[90];
-        FILE * sizefile = fopen("size.txt","r");
-        fgets(search,sizefile);
-        fclose(sizefile);
-        system("rm size.txt");
+        fgets(search,90,size);
+        fclose(size);
+        int len = strlen(search);
+        search[len-1]='\0';
         char * ptr = strtok(search," ");
-        int si;
-        sscanf(ptr,"%dk",&si);
-        if(si<20){
-            printf("file-size-check............PASSED\n\n");
+        int bytes;
+        sscanf(ptr,"%d",&bytes);
+        if(bytes>20){
+            printf("file-size-check...............FAILED\n");
         }else{
-            printf("file-size-check............FAILED\n\n");
+            printf("file-size-check...............PASSED\n");
         }
     }
     int hock4(char file[],char prefix[]){
@@ -1477,41 +1488,23 @@ char time_path[90];
         if(LEN>20000){
             printf("file-size-check...............PASSED\n");
         }else{
-            printf("file-size-check...................FAILED\n")
+            printf("file-size-check...................FAILED\n");
         }
     }
 int main(int argc , char * argv[]){
     // we pure all txt files that we need for our programm in .neogit_app folder in /home and we made that before;
     //now we have this 2D strig which have all commands:
     char allcommands[50][50];
-    // strcpy(allcommands[0],"neogit config -global user.email");
-    // strcpy(allcommands[1],"neogit config -global user.name");
-    // strcpy(allcommands[2],"neogit config global user.name");
-    // strcpy(allcommands[3],"neogit config global user.email");
+    strcpy(allcommands[0],"neogit config -global user.email");
+    strcpy(allcommands[1],"neogit config -global user.name");
+    strcpy(allcommands[2],"neogit config global user.name");
+    strcpy(allcommands[3],"neogit config global user.email");
     strcpy(allcommands[4],"neogit init");
-    // strcpy(allcommands[5],"neogit add");
-    // strcpy(allcommands[6],"neogit add -f");
-    // strcpy(allcommands[7],"neogit add -n");
-    // strcpy(allcommands[8],"neogit add -redo");
-    strcpy(allcommands[9],"neogit reset");
-    //strcpy(allcommands[10],"neogit reset -undo");
-    strcpy(allcommands[11],"neogit status");
-    //strcpy(allcommands[12],"neogit commit -m");
-    // strcpy(allcommands[13],"neogit set -m");
-    // strcpy(allcommands[14],"neogit replace -m");
-    // strcpy(allcommands[15],"neogit remove -s");
-    strcpy(allcommands[16],"neogit log");
-    // strcpy(allcommands[17],"neogit log -n");
-    // strcpy(allcommands[18],"neogit log -branch");
-    // strcpy(allcommands[19],"neogit log -since");
-    // strcpy(allcommands[20],"neogit log -before");
-    // strcpy(allcommands[21],"neogit log -search");
-    // strcpy(allcommands[22],"neogit branch");
-    // strcpy(allcommands[23],"neogit checkout -b");
-    // strcpy(allcommands[24],"neogit checkout -c");
-    // strcpy(allcommands[25],"neogit checkout HEAD");
-    printf("%s",allcommands[1]);
-    return 0;
+    strcpy(allcommands[5],"neogit reset");
+    strcpy(allcommands[6],"neogit reset -undo");
+    strcpy(allcommands[7],"neogit status");
+    strcpy(allcommands[8],"neogit log");
+    strcpy(allcommands[9],"neogit checkout HEAD");
     //first step is to build neogit init command
     if(strcmp(argv[1],"init")==0){
             //we save all locations of our projects in locations.txt in /home:
@@ -1676,11 +1669,6 @@ int main(int argc , char * argv[]){
                 strcat(path,argv[i]);
                 reset(path);
             }
-        }else if (strcmp(argv[2],"-undo")==0){
-
-
-
-
         }else{
             char path[90];
             system("touch path.txt");
@@ -3062,30 +3050,145 @@ int main(int argc , char * argv[]){
         diff_folderchecker_reverse(commit2,commit1,length);
     }else if(strcmp(argv[1],"pre-commit")==0){
         testproject();
-        chdir(".neogit/staged_files");
-        system("ls > files.txt");
-        char search[90];
-        FILE * files = fopen("files.txt");
-        while(fgets(search,90,files)){
-            if(strcmp(search,"files.txt\n")==0) continue;
-            if(strcmp(search,"Astagedfiles.txt\n")==0) continue;
-            if(strcmp(search,"trackted_files.txt\n")==0) continue;
-            if(strcmp(search,"statged_files.txt\n")==0) continue;
-            char file_name[30];
-            strcpy(file_name,search);
-            int len = strlen(file_name);
-            file_name[len-1]='\0';
-            char file_name2[30];
-            strcpy(file_name2,file_name);
-            char * ptr = strtok(file_name2,".");
-            ptr = strtok(NULL,".");
-            if(((strcmp(ptr,"txt")==0)||(strcmp(ptr,".cpp")))||(strcmp(ptr,"c")==0)){
-                hock1(file_name1,ptr);
-                hock2(file_name1,ptr);
-                hock3(file_name1,ptr);
-                hock4(file_name1,ptr);
+        if(argc==2){
+            char search[90];
+            chdir(".neogit/staged_files");
+            system("ls > files.txt");
+            FILE * files = fopen("files.txt","r");
+            while(fgets(search,90,files)){
+                if(strcmp(search,"files.txt\n")==0) continue;
+                if(strcmp(search,"Astagedfiles.txt\n")==0) continue;
+                if(strcmp(search,"trackted_files.txt\n")==0) continue;
+                if(strcmp(search,"statged_files.txt\n")==0) continue;
+                char file_name[30];
+                strcpy(file_name,search);
+                int len = strlen(file_name);
+                file_name[len-1]='\0';
+                char file_name2[30];
+                strcpy(file_name2,file_name);
+                char * ptr = strtok(file_name2,".");
+                ptr = strtok(NULL,".");
+                if(((strcmp(ptr,"txt")==0)||(strcmp(ptr,".cpp")))||(strcmp(ptr,"c")==0)){
+                    hock1(file_name,ptr);
+                    hock2(file_name,ptr);
+                    hock3(file_name,ptr);
+                    hock4(file_name,ptr);
+                }
+            }
+            fclose(files);
+        }else if((strcmp(argv[2],"hooks")==0)&&(strcmp(argv[1],"pre-commit")==0)){
+            char location[90];
+            strcpy(location,neogit_project_location);
+            strcat(location,"/.neogit/hooks.txt");
+            if(checkdirectory(location)==-1){
+                FILE * file = fopen(location,"w");
+                fprintf(file,"todo-check\n");
+                fprintf(file,"eof-blank-space\n");
+                fprintf(file,"file-size-check\n");
+                fprintf(file,"character-limit\n");
+                fclose(file);
+            }
+            FILE * hooks = fopen(location,"r");
+            char search[90];
+            while(fgets(search,90,hooks)){
+                printf("%s",search);
+            }
+            fclose(hooks);
+        }else if((strcmp(argv[2],"applied")==0)&&(strcmp(argv[1],"pre-commit")==0)){
+            char location[90];
+            strcpy(location,neogit_project_location);
+            strcat(location,"/.neogit/applied_hooks.txt");
+            if(checkdirectory(location)==-1){
+                FILE * file = fopen(location,"w");
+                fprintf(file,"todo-check\n");
+                fprintf(file,"eof-blank-space\n");
+                fprintf(file,"file-size-check\n");
+                fprintf(file,"character-limit\n");
+                fclose(file);
+            }
+            FILE * applied_hooks = fopen(location,"r");
+            char search[90];
+            while(fgets(search,90,applied_hooks)){
+                printf("%s",search);
+            }
+            fclose(applied_hooks);
+        }else if((strcmp(argv[2],"add")==0)&&(strcmp(argv[1],"pre-commit")==0)){
+            char hook_ID[90];
+            char hook_IDcopy[90];
+            strcpy(hook_ID,argv[4]);
+            strcpy(hook_IDcopy,hook_ID);
+            strcat(hook_IDcopy,"\n");
+            char location[90];
+            strcpy(location,neogit_project_location);
+            strcat(location,"/.neogit/applied_hooks.txt");
+            if(checkdirectory(location)==-1){
+                FILE * file = fopen(location,"w");
+                fprintf(file,"todo-check\n");
+                fprintf(file,"eof-blank-space\n");
+                fprintf(file,"file-size-check\n");
+                fprintf(file,"character-limit\n");
+                fclose(file);
+            }
+            FILE * applied_hooks = fopen(location,"r");
+            char search[90];
+            int flag=0;
+            while(fgets(search,90,applied_hooks)){
+                if(strcmp(search,hook_IDcopy)==0){
+                    printf("this hook is allready applied to your project!\n");
+                    flag++;
+                    break;
+                }
+            }
+            fclose(applied_hooks);
+            if(flag==0){
+                FILE * apphooks = fopen(location,"a");
+                fprintf(apphooks,"%s",hook_IDcopy);
+                fclose(apphooks);
+            }
+            return 0;
+        }else if((strcmp(argv[1],"pre-commit")==0)&&(strcmp(argv[2],"remove")==0)){
+            char location[90];
+            strcpy(location,neogit_project_location);
+            strcat(location,"/.neogit/applied_hooks.txt");
+            if(checkdirectory(location)==-1){
+                FILE * file = fopen(location,"w");
+                fprintf(file,"todo-check\n");
+                fprintf(file,"eof-blank-space\n");
+                fprintf(file,"file-size-check\n");
+                fprintf(file,"character-limit\n");
+                fclose(file);
+            }
+            char hook_id[90];
+            strcpy(hook_id,argv[3]);
+            strcat(hook_id,"\n");
+            FILE * applied_hooks = fopen(location,"r");
+            char search[90];
+            int flag=0;
+            while(fgets(search,90,applied_hooks)){
+                if(strcmp(search,hook_id)==0){
+                    flag++;
+                    break;
+                }
+            }
+            if(flag==0)   printf("there isn't any applied hook with this name!\n");
+            fclose(applied_hooks);
+            if(flag>0){
+                chdir(neogit_project_location);
+                chdir(".neogit");
+                FILE * tempfile = fopen("temp.txt","w");
+                FILE * searchfile = fopen("applied_hooks.txt","r");
+                char copy[90];
+                while(fgets(copy,90,searchfile)){
+                    if(strcmp(copy,hook_id)!=0)
+                    fprintf(tempfile,"%s",copy);
+                }
+                fclose(tempfile);
+                fclose(searchfile);
+                system("rm applied_hooks.txt");
+                system("mv temp.txt applied_hooks.txt");
             }
         }
+        
 
 
 
@@ -3107,7 +3210,7 @@ int main(int argc , char * argv[]){
         strcpy(aliasname,aliasname+counter+1);
         // now we pure the command:
         int test=0;
-        for(int i=50 ;1; i++){
+        for(int i=0 ;i<10; i++){
             if(strcmp(argv[4],allcommands[i])==0){
                 test++;
                 break;
@@ -3137,7 +3240,7 @@ int main(int argc , char * argv[]){
         strcpy(aliasname,aliasname+counter+1);
         // now we pure the command:
         int test=0;
-        for(int i=50 ;1; i++){
+        for(int i=0 ;i<10; i++){
             if(strcmp(argv[3],allcommands[i])==0){
                 test++;
                 break;
@@ -3156,13 +3259,8 @@ int main(int argc , char * argv[]){
         fclose(alias);
         }
     }else{
-        if(strstr(argv[2],"alias.")!=0){
-            printf("invalid command\n");
-            return 0;
-        }
         char newcommand[30];
-        strcpy(newcommand,argv[2]);
-        strcpy(newcommand,newcommand+6);
+        strcpy(newcommand,argv[1]);
         char u[40];
         strcpy(u,newcommand);
         strcat(u,"\n");
@@ -3171,37 +3269,44 @@ int main(int argc , char * argv[]){
         char loc[90];
         strcpy(loc,neogit_project_location);
         strcat(loc,"/.neogit/alias_commands.txt");
+        int flag=0;
         if(checkdirectory(loc)==0){
+            chdir(neogit_project_location);
             FILE * alias1 = fopen(".neogit/alias_commands.txt","r");
             char commands2[30];
             while(fgets(commands2,30,alias1)){
                 if(strcmp(u,commands2)==0){
-                    char order[40];
-                    strcpy(order,"neogit ");
                     fgets(commands2,30,alias1);
-                    strcat(order,newcommand);
-                    system(order);
+                    char command10[90];
+                    strcpy(command10,commands2);
+                    int len = strlen(command10);
+                    command10[len-1]='\0';
+                    system(command10);
+                    flag++;
                     break;
+                }
             }
-        }
-        fclose(alias1);
-        return 0;
+            fclose(alias1);
+            if(flag==1)   return 0;
         }
         if(checkdirectory("/home/.neogit_app/alias_commands.txt")==0){
+            int flag2=0;
             FILE * alias = fopen("/home/.neogit_app/alias_commands.txt","r");
             char commands[30];
             while(fgets(commands,30,alias)){
                 if(strcmp(u,commands)==0){
-                    char order[40];
-                    strcpy(order,"neogit ");
                     fgets(commands,30,alias);
-                    strcat(order,newcommand);
+                    char order[90];
+                    strcpy(order,commands);
+                    int length = strlen(order);
+                    order[length-1]='\0';
                     system(order);
-                    break;
+                    flag2++;
                 }
             }
             fclose(alias);
-            return 0;
+            if(flag2==1)  return 0;
+            printf("invalid command\n");
         }
         
     }
