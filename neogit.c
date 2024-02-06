@@ -1389,6 +1389,34 @@ int main(int argc , char * argv[]){
     // we pure all txt files that we need for our programm in .neogit_app folder in /home and we made that before;
     //now we have this 2D strig which have all commands:
     char allcommands[50][50];
+    // strcpy(allcommands[0],"neogit config -global user.email");
+    // strcpy(allcommands[1],"neogit config -global user.name");
+    // strcpy(allcommands[2],"neogit config global user.name");
+    // strcpy(allcommands[3],"neogit config global user.email");
+    strcpy(allcommands[4],"neogit init");
+    // strcpy(allcommands[5],"neogit add");
+    // strcpy(allcommands[6],"neogit add -f");
+    // strcpy(allcommands[7],"neogit add -n");
+    // strcpy(allcommands[8],"neogit add -redo");
+    strcpy(allcommands[9],"neogit reset");
+    //strcpy(allcommands[10],"neogit reset -undo");
+    strcpy(allcommands[11],"neogit status");
+    //strcpy(allcommands[12],"neogit commit -m");
+    // strcpy(allcommands[13],"neogit set -m");
+    // strcpy(allcommands[14],"neogit replace -m");
+    // strcpy(allcommands[15],"neogit remove -s");
+    strcpy(allcommands[16],"neogit log");
+    // strcpy(allcommands[17],"neogit log -n");
+    // strcpy(allcommands[18],"neogit log -branch");
+    // strcpy(allcommands[19],"neogit log -since");
+    // strcpy(allcommands[20],"neogit log -before");
+    // strcpy(allcommands[21],"neogit log -search");
+    // strcpy(allcommands[22],"neogit branch");
+    // strcpy(allcommands[23],"neogit checkout -b");
+    // strcpy(allcommands[24],"neogit checkout -c");
+    // strcpy(allcommands[25],"neogit checkout HEAD");
+    printf("%s",allcommands[1]);
+    return 0;
     //first step is to build neogit init command
     if(strcmp(argv[1],"init")==0){
             //we save all locations of our projects in locations.txt in /home:
@@ -1482,7 +1510,7 @@ int main(int argc , char * argv[]){
         }
     }
     //user.name and user.email
-    else if(strcmp(argv[1],"config")==0){
+    else if((strcmp(argv[1],"config")==0)&&(strcmp(argv[argc-1],"alias")!=0)){
         if(strcmp(argv[2],"-global")==0){
             assign_global(argv[3],argv[4]);
         }else if(strcmp(argv[2],"-global")!=0){
@@ -2430,7 +2458,7 @@ int main(int argc , char * argv[]){
         strcpy(command,"neogit checkout -d ");
         strcat(command,H);
         system(command);
-    }else if((strcmp(argv[1],"revert"==0))&&(strcmp(argv[2],"[e]")!=0)){
+    }else if((strcmp(argv[1],"revert")==0)&&(strcmp(argv[2],"[e]")!=0)){
         int hash;
         sscanf(argv[4],"%d",&hash);
         hash--;
@@ -2445,7 +2473,7 @@ int main(int argc , char * argv[]){
         char path[90];
         char last[90];
         while(fgets(search_copy,90,file)){
-            if(strstr(search_copy,seach)!=NULL){
+            if(strstr(search_copy,search)!=NULL){
                 strcpy(path,search_copy);
                 int len = strlen(path);
                 path[len-1]='\0';
@@ -2938,8 +2966,38 @@ int main(int argc , char * argv[]){
         diff_folderchecker(commit1,commit2,length);
         diff_folderchecker_reverse(commit2,commit1,length);
     }else if((strcmp(argv[1],"merge")==0)&&(strcmp(argv[2],"-b")==0)){
-        
-    }else if((strcmp(argv[1],"config")==0)&&(argv[2][0]=='a')){
+
+    }else if((strcmp(argv[1],"config")==0)&&(strcmp(argv[2],"-global")==0)){
+        char search; 
+        search = argv[3][0];
+        int counter=0;
+        while(search!='.'){
+            counter++;
+            search = argv[3][counter];
+        }
+        char aliasname[30];
+        strcpy(aliasname,argv[3]);
+        strcpy(aliasname,aliasname+counter+1);
+        // now we pure the command:
+        int test=0;
+        for(int i=50 ;1; i++){
+            if(strcmp(argv[4],allcommands[i])==0){
+                test++;
+                break;
+            }
+        }
+        if(test==0){
+            printf("invalid command\n");
+        }else{
+            // now we open txt file for alias commands:
+        FILE * alias = fopen("/home/.neogit_app/alias_commands.txt","a");
+        fprintf(alias,"%s\n",aliasname);
+        fprintf(alias,"%s\n",argv[4]);
+        // in our alias file every time that we use alias command it goes here and append name of new alias and then
+        //our common command;
+        fclose(alias);
+        }
+    }else if((strcmp(argv[1],"config")==0)&&(strcmp(argv[2],"-global")!=0)){
         char search; 
         search = argv[2][0];
         int counter=0;
@@ -2947,12 +3005,10 @@ int main(int argc , char * argv[]){
             counter++;
             search = argv[2][counter];
         }
-        strcpy(argv[2],argv[2]+counter+1);
+        char aliasname[30];
+        strcpy(aliasname,argv[2]);
+        strcpy(aliasname,aliasname+counter+1);
         // now we pure the command:
-        strcpy(argv[3],argv[3]+1);
-        int len = strlen(argv[3]);
-        argv[len-1]='\0';
-        //verify argv[3]:
         int test=0;
         for(int i=50 ;1; i++){
             if(strcmp(argv[3],allcommands[i])==0){
@@ -2964,30 +3020,63 @@ int main(int argc , char * argv[]){
             printf("invalid command\n");
         }else{
             // now we open txt file for alias commands:
-        FILE * alias = fopen("/home/.neogit_app/alias_commands.txt","a");
-        fprintf(alias,"%s",argv[2]);
-        fprintf(alias,"%s",argv[3]);
+        testproject();
+        FILE * alias = fopen(".neogit/alias_commands.txt","a");
+        fprintf(alias,"%s\n",aliasname);
+        fprintf(alias,"%s\n",argv[3]);
         // in our alias file every time that we use alias command it goes here and append name of new alias and then
         //our common command;
         fclose(alias);
         }
     }else{
-        char newcommand[30];
-        strcpy(newcommand,argv[1]);
-        for(int i=2 ;argv[i]!=NULL; i++){
-            strcat(newcommand,argv[i]);
+        if(strstr(argv[2],"alias.")!=0){
+            printf("invalid command\n");
+            return 0;
         }
-        FILE * alias = fopen("/home/.neogit_app/alias_commands.txt","r");
-        char commands[30];
-        while(fgets(commands,30,alias)){
-            if(strcmp(newcommand,commands)==0){
-                char order[40];
-                strcpy(order,"./neogit ");
-                fgets(commands,30,alias);
-                strcat(order,commands);
-                system(order);
+        char newcommand[30];
+        strcpy(newcommand,argv[2]);
+        strcpy(newcommand,newcommand+6);
+        char u[40];
+        strcpy(u,newcommand);
+        strcat(u,"\n");
+        //check local .neogit:
+        testproject();
+        char loc[90];
+        strcpy(loc,neogit_project_location);
+        strcat(loc,"/.neogit/alias_commands.txt");
+        if(checkdirectory(loc)==0){
+            FILE * alias1 = fopen(".neogit/alias_commands.txt","r");
+            char commands2[30];
+            while(fgets(commands2,30,alias1)){
+                if(strcmp(u,commands2)==0){
+                    char order[40];
+                    strcpy(order,"neogit ");
+                    fgets(commands2,30,alias1);
+                    strcat(order,newcommand);
+                    system(order);
+                    break;
             }
         }
+        fclose(alias1);
+        return 0;
+        }
+        if(checkdirectory("/home/.neogit_app/alias_commands.txt")==0){
+            FILE * alias = fopen("/home/.neogit_app/alias_commands.txt","r");
+            char commands[30];
+            while(fgets(commands,30,alias)){
+                if(strcmp(u,commands)==0){
+                    char order[40];
+                    strcpy(order,"neogit ");
+                    fgets(commands,30,alias);
+                    strcat(order,newcommand);
+                    system(order);
+                    break;
+                }
+            }
+            fclose(alias);
+            return 0;
+        }
+        
     }
         
 
