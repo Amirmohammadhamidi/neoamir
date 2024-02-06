@@ -1441,11 +1441,24 @@ char time_path[90];
         printf("eof-blank-space...............FAILED\n");
     }
     int hock3(char file[],char prefix[]){
-        if(((strcmp(prefix,"txt")!=0)&&(strcmp(prefix,"cpp")!=0))&&(strcmp(prefix,"c")!=0)){
-            printf("eof-blank-space...............SKIPPED\n");
-            return 0;
+        char command[90];
+        strcpy(command,"du -h");
+        strcat(command,file);
+        strcat(command," > size.txt");
+        system(command);
+        char search[90];
+        FILE * sizefile = fopen("size.txt","r");
+        fgets(search,sizefile);
+        fclose(sizefile);
+        system("rm size.txt");
+        char * ptr = strtok(search," ");
+        int si;
+        sscanf(ptr,"%dk",&si);
+        if(si<20){
+            printf("file-size-check............PASSED\n\n");
+        }else{
+            printf("file-size-check............FAILED\n\n");
         }
-
     }
     int hock4(char file[],char prefix[]){
         if(((strcmp(prefix,"txt")!=0)&&(strcmp(prefix,"cpp")!=0))&&(strcmp(prefix,"c")!=0)){
